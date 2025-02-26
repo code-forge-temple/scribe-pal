@@ -1,0 +1,18 @@
+.code-wrapper {
+    display: flex;
+    position: relative;
+
+    .copy-button {
+        position: absolute;
+        top: 12px;
+        right: 5px;
+        font-size: 0.8rem;
+        padding: 2px 5px;
+        cursor: pointer;
+        color: white;
+    }
+
+    pre {
+        width: 100%;
+    }
+}

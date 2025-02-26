@@ -1,0 +1,28 @@
+    .tag {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.3em 0.6em;
+        font-size: 90%;
+        font-weight: 500;
+        color: #fff;
+        background-color: #551a8b;
+        border-radius: 10rem;
+        cursor: pointer;
+        user-select: none;
+        margin-right: 0.5em;
+
+        .close-btn {
+            background: transparent;
+            border: none;
+            color: #fff;
+            margin-left: 0.4em;
+            font-size: 1em;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0;
+
+            &:hover {
+                color: #ccc;
+            }
+        }
+    }

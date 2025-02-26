@@ -1,0 +1,94 @@
+@use "../common/styles/variables.scss" as vars;
+
+html,
+body {
+    width: 400px;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+}
+
+.list-group {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    margin: 0;
+
+    .list-group-item {
+        position: relative;
+        margin-bottom: -1px;
+        border: 1px solid #ccc;
+    }
+
+    .list-group-item:hover {
+        cursor: pointer;
+        background-color: #0d6efd;
+        color: white;
+    }
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    padding: 5px;
+    height: 40px;
+}
+
+.theme-selection {
+    #dark-theme-toggle {
+        cursor: pointer;
+        margin-left: 10px;
+        height: 37px;
+    }
+
+    #dark-theme-status {
+        margin-left: 5px;
+    }
+}
+
+.input-with-button {
+    border-bottom: .1px solid #ccc;
+
+    label {
+        padding-right: 5px;
+    }
+
+    input[type="text"] {
+        flex-grow: 1;
+        padding: 5px;
+        border: 1px solid #ccc;
+        border-radius: 4px 0 0 4px;
+    }
+
+    button {
+        padding: 6px 10px;
+        background: #0078d7;
+        color: #fff;
+        border: none;
+        border-radius: 0 4px 4px 0;
+        cursor: pointer;
+
+        &:hover {
+            background: #005fa3;
+        }
+    }
+}
+
+.dark-theme {
+    background: vars.$dark-theme-primary-color;
+    color: white;
+
+    .input-with-button {
+        border-color: vars.$dark-theme-secondary-color;
+
+        input {
+            background: vars.$dark-theme-secondary-color;
+            color: white;
+            border-color: vars.$dark-theme-secondary-color !important;
+        }
+    }
+
+    .list-group-item {
+        border-color: vars.$dark-theme-secondary-color;
+    }
+}

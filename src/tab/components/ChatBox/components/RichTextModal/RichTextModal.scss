@@ -1,0 +1,51 @@
+@use "../../../../../common/styles/variables.scss" as commonVars;
+@use "../../../../styles/mixins.scss" as mixins;
+
+.rich-text-modal {
+    @include mixins.modal-window;
+
+    @mixin main-textarea {
+        resize: none;
+        width: 100%;
+        margin-bottom: 10px;
+        padding: 8px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        background: #fff;
+        color: black;
+    }
+
+    .textarea {
+        @include main-textarea;
+
+        height: 300px;
+    }
+
+    .textarea-single-line {
+        @include main-textarea;
+    }
+
+    .modal-buttons {
+        display: flex;
+        justify-content: flex-end;
+
+        button {
+            @include mixins.button-style;
+            margin-left: 10px;
+        }
+    }
+}
+
+.dark-theme {
+    .rich-text-modal {
+        background: commonVars.$dark-theme-primary-color;
+        border-color: commonVars.$dark-theme-primary-color;
+
+        .textarea,
+        .textarea-single-line {
+            background: commonVars.$dark-theme-secondary-color;
+            color: white;
+            border-color: commonVars.$dark-theme-secondary-color;
+        }
+    }
+}

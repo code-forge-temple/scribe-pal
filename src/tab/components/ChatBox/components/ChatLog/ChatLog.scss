@@ -1,0 +1,92 @@
+@use "../../../../../common/styles/variables.scss" as commonVars;
+
+.chat-log {
+    background: white;
+    overflow-y: auto;
+
+    img {
+        max-width: 100%;
+        height: auto;
+    }
+
+    .chat-message {
+        display: flex;
+        flex-direction: column;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        margin: 10px 0 10px 0;
+        padding: 0;
+        width: auto;
+
+        .sender {
+            color: #333;
+            display: flex;
+            font-weight: bold;
+
+            .delete-message,
+            .spinner {
+                color: #551a8b;
+            }
+
+            svg {
+                display: block;
+                height: 22px;
+                width: auto;
+                margin-right: 5px;
+                cursor: pointer;
+            }
+
+            .spinner {
+                color: #0078d7;
+                animation: spin 0.8s linear infinite;
+            }
+
+            @keyframes spin {
+                from {
+                    transform: rotate(0deg);
+                }
+
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+        }
+    }
+
+    a {
+        all: unset;
+        color: #0066cc;
+        text-decoration: none;
+        cursor: pointer;
+
+        &:hover {
+            text-decoration: underline;
+        }
+
+        &:visited {
+            color: #551a8b;
+        }
+
+        &:active {
+            color: #cc0000;
+        }
+    }
+}
+
+.dark-theme {
+    .chat-log {
+        background: commonVars.$dark-theme-secondary-color;
+        color: white;
+
+        .chat-message {
+            .sender {
+                color: white;
+
+                svg {
+                    color: #9730f5;
+                }
+            }
+        }
+    }
+}

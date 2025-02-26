@@ -1,0 +1,66 @@
+@use "../../../../../common/styles/variables.scss" as commonVars;
+
+.chat-box-header {
+    background: #0078d7;
+    color: #fff;
+    padding: 10px;
+    cursor: move;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+
+    .model-selection {
+        display: flex;
+
+        select {
+            cursor: pointer;
+            padding: 0 5px 0 5px;
+            width: auto;
+
+            option {
+                color: black;
+                background: white;
+            }
+        }
+
+        .delete-model {
+            color: white;
+        }
+
+        svg {
+            cursor: pointer;
+            height: 21px;
+            width: auto;
+            margin-right: 5px;
+            display: block;
+        }
+    }
+
+    .header-buttons {
+        width: auto;
+        margin: 0;
+        padding: 0;
+        background: transparent;
+        box-shadow: none;
+        border-radius: 0;
+    }
+
+    .header-button {
+        cursor: pointer;
+        margin-left: 10px;
+    }
+
+}
+
+.dark-theme {
+    .chat-box-header {
+        select {
+            option {
+                background: commonVars.$dark-theme-secondary-color;
+                color: white;
+            }
+        }
+    }
+}

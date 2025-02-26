@@ -1,0 +1,17 @@
+@use "../../../common/styles/variables.scss" as commonVars;
+@use "../../styles/mixins.scss" as mixins;
+
+
+.chat-box {
+    @include mixins.modal-window;
+    top: 100px;
+    left: 100px;
+    transform: none;
+    line-height: normal;
+}
+
+.dark-theme {
+    &.chat-box {
+        border-color: commonVars.$dark-theme-primary-color;
+    }
+}

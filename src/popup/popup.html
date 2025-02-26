@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+</head>
+
+<body>
+    <div class="menu-item input-with-button">
+        <label for="ollama-url">Ollama Server URL:</label>
+        <input type="text" id="ollama-url" placeholder="http://your-server:port">
+        <button id="save-ollama-url">Save</button>
+    </div>
+    <div class="menu-item theme-selection">
+        <span>Dark Theme:</span>
+        <img id="dark-theme-toggle" src="assets/switch-off.svg" alt="Toggle Dark Theme" />
+        <span id="dark-theme-status">Off</span>
+
+    </div>
+    <ul class="list-group">
+        <li id="showChat" class="menu-item list-group-item">
+            Show ScribePal chat
+        </li>
+        <script type="module" src="popup.js"></script>
+</body>
+
+</html>
