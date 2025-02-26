@@ -9,6 +9,7 @@ ScribePal is an Open Source intelligent browser extension that leverages AI to e
 - [ScribePal](#scribepal)
     - [Table of Contents](#table-of-contents)
     - [Privacy](#privacy)
+    - [Compatibility](#compatibility)
     - [Features](#features)
     - [Prerequisites](#prerequisites)
         - [Linux](#linux)
@@ -29,9 +30,14 @@ ScribePal is an Open Source intelligent browser extension that leverages AI to e
 
 ScribePal works with local Ollama models, ensuring that all AI processing and messaging is conducted within your local network. Your private data remains on your system and is never transmitted to external servers. This design provides you with full control over your information and guarantees that nobody outside your network has access to your data.
 
+## Compatibility
+
+It is compatible with all Chromium and Gecko-based browsers: Chrome, Vivaldi, Opera, Edge, Firefox, Brave etc.
+
 ## Features
 
 - **AI-powered assistance:** Communicates with an AI service (using [ollama](https://www.npmjs.com/package/ollama)) to generate responses.
+- **It is PRIVATE:** Because it communicates with a local (within your LAN) Ollama service and LLMs, all your information stays private.
 - **Theming:** Supports light and dark themes.
 - **Chat Interface:** A draggable chat box for sending and receiving messages.
 - **Model Management:** Select, refresh, download, and delete models.
@@ -181,6 +187,10 @@ To install the the compiled extension, for:
    - Type your query in the chat input and press Enter or click the `Send` button.
    - The AI response is rendered below the input as markdown.
    - You can manage (delete or refresh) available Ollama models using the available controls in the model select dropdown.
+
+A short video tutorial on how to use the plugin:
+
+[![IR7Jufc0zxo](https://img.youtube.com/vi/IR7Jufc0zxo/0.jpg)](https://www.youtube.com/watch?v=IR7Jufc0zxo)
 
 ## License
 This project is licensed under the GNU General Public License v3.0. See the [LICENSE](LICENSE) file for more details.
