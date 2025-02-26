@@ -62,8 +62,8 @@ Also, ensure that the [Ollama](https://ollama.com) host is installed on your loc
     Environment="OLLAMA_HOST=0.0.0.0"
     Environment="OLLAMA_ORIGINS=chrome-extension://*,moz-extension://*"
     ```
-    > [!NOTE]  
-    > The `OLLAMA_HOST=0.0.0.0` setting is optional if the Ollama server is running on localhost and you do not need the Ollama server to be accessed from LAN.
+> [!NOTE]
+> The `OLLAMA_HOST=0.0.0.0` setting is optional if the Ollama server is running on localhost and you do not need the Ollama server to be accessed from LAN.
 
 4. Save the file, then reload and restart the service:
     ```sh
@@ -80,9 +80,8 @@ Also, ensure that the [Ollama](https://ollama.com) host is installed on your loc
     OLLAMA_ORIGINS=chrome-extension://*,moz-extension://*
     ```
    You can do this via the System Properties or using PowerShell.
-
-    > [!NOTE]  
-    > The `OLLAMA_HOST=0.0.0.0` setting is optional if the Ollama server is running on localhost and you do not need the Ollama server to be accessed from LAN.
+> [!NOTE]
+> The `OLLAMA_HOST=0.0.0.0` setting is optional if the Ollama server is running on localhost and you do not need the Ollama server to be accessed from LAN.
 
 3. Restart Ollama app.
 
