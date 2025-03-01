@@ -7,7 +7,7 @@
 
 import {Ollama} from "ollama/browser";
 import {browser} from "../../common/browser";
-import {ErrorResponse, FetchAiResponse, FetchModelResponse} from "../utils/types";
+import {ErrorResponse, FetchAiResponse, FetchModelResponse, Message} from "../utils/types";
 
 
 type OllamaModel = {
@@ -79,7 +79,7 @@ export class OllamaService {
     };
 
     async *fetchAIResponse (
-        messages: { role: string; content: string }[],
+        messages: Message[],
         model: string
     ): AsyncGenerator<FetchAiResponse, void, unknown> {
         try {

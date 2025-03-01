@@ -6,6 +6,7 @@
  ************************************************************************/
 
 import {browser} from "../../common/browser";
+import {decrypt, windowPostEncryptedMessage} from "../utils/encryption";
 import {getTabStorage, setTabStorage} from "../utils/storageHelper";
 import {MessageData} from "../utils/types";
 import {runtimeConnect} from "../utils/utils";
@@ -13,9 +14,7 @@ import {PRIVILEGED_API} from "./constants";
 import {EventData} from "./types";
 
 
-window.addEventListener("message", <T extends keyof MessageData>(event: MessageEvent<EventData<T>>) => {
-    if (event.source !== window || !event.data) return;
-
+const privilegedApiRequestsHandler = <T extends keyof MessageData>(event: MessageEvent<EventData<T>>) => {
     const {type} = event.data;
 
     switch (type) {
@@ -23,14 +22,11 @@ window.addEventListener("message", <T extends keyof MessageData>(event: MessageE
             const {key} = event.data.payload;
 
             browser.storage.local.get(key, (response: any) => {
-                window.postMessage(
-                    {
-                        type: `${PRIVILEGED_API.BROWSER_STORAGE_LOCAL_GET}.response`,
-                        key,
-                        response
-                    },
-                    "*"
-                );
+                windowPostEncryptedMessage({
+                    response,
+                    type: `${PRIVILEGED_API.BROWSER_STORAGE_LOCAL_GET}.response`,
+                    key,
+                }, "response");
             });
             break;
         }
@@ -49,13 +45,10 @@ window.addEventListener("message", <T extends keyof MessageData>(event: MessageE
             const {tabId} = event.data.payload;
 
             getTabStorage(tabId).then((response) => {
-                window.postMessage(
-                    {
-                        type: `${PRIVILEGED_API.GET_TAB_STORAGE}.response`,
-                        response
-                    },
-                    "*"
-                );
+                windowPostEncryptedMessage({
+                    response,
+                    type: `${PRIVILEGED_API.GET_TAB_STORAGE}.response`,
+                }, "response");
             });
             break;
         }
@@ -74,14 +67,11 @@ window.addEventListener("message", <T extends keyof MessageData>(event: MessageE
             const {payload, requestId} = event.data;
 
             browser.runtime.sendMessage(payload, (response: any) => {
-                window.postMessage(
-                    {
-                        type: `${PRIVILEGED_API.BROWSER_RUNTIME_SEND_MESSAGE}.response`,
-                        requestId,
-                        response
-                    },
-                    "*"
-                );
+                windowPostEncryptedMessage({
+                    response,
+                    type: `${PRIVILEGED_API.BROWSER_RUNTIME_SEND_MESSAGE}.response`,
+                    requestId,
+                }, "response");
             });
             break;
         }
@@ -92,14 +82,11 @@ window.addEventListener("message", <T extends keyof MessageData>(event: MessageE
                 name,
                 data: payload,
                 onMessage: (response) => {
-                    window.postMessage(
-                        {
-                            type: `${PRIVILEGED_API.BROWSER_RUNTIME_CONNECT}.response`,
-                            portId,
-                            response
-                        },
-                        "*"
-                    );
+                    windowPostEncryptedMessage({
+                        response,
+                        type: `${PRIVILEGED_API.BROWSER_RUNTIME_CONNECT}.response`,
+                        portId,
+                    }, "response");
                 },
                 onDisconnect: () => {
                     window.postMessage(
@@ -115,4 +102,46 @@ window.addEventListener("message", <T extends keyof MessageData>(event: MessageE
             break;
         }
     }
-});
+}
+
+const processPrivilegedApiRequests = (event: MessageEvent) => {
+    if (
+        event.source !== window ||
+        !event.data ||
+        typeof event.data !== "object" ||
+        !("type" in event.data)
+    ) {
+        return;
+    }
+
+    const {type} = event.data;
+
+    switch (type) {
+        case PRIVILEGED_API.BROWSER_STORAGE_LOCAL_GET:
+        case PRIVILEGED_API.BROWSER_STORAGE_LOCAL_SET:
+        case PRIVILEGED_API.GET_TAB_STORAGE:
+        case PRIVILEGED_API.SET_TAB_STORAGE:
+        case PRIVILEGED_API.BROWSER_RUNTIME_SEND_MESSAGE:
+        case PRIVILEGED_API.BROWSER_RUNTIME_CONNECT:{
+            const {payload: encryptedPayload} = event.data;
+
+            if(encryptedPayload) {
+                decrypt(encryptedPayload).then((payload) => {
+                    privilegedApiRequestsHandler({
+                        ...event,
+                        data: {
+                            ...event.data,
+                            payload
+                        }
+                    });
+                });
+            } else {
+                privilegedApiRequestsHandler(event);
+            }
+
+            break;
+        }
+    }
+};
+
+window.addEventListener("message", processPrivilegedApiRequests);

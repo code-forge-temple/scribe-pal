@@ -7,13 +7,18 @@
 
 import {EXTENSION_NAME} from "../common/constants";
 import {showChat} from "./features/chat/actions/showChat";
+import {generateKey} from "./utils/encryption";
 
 type ChatBoxId = string;
+
 type IsChatBoxShown = boolean;
 
 type ExtensionNamespace = {
     showChat: typeof showChat;
     shownChatBoxes: Record<ChatBoxId, IsChatBoxShown>;
+    encryption: {
+        key: CryptoKey;
+    };
 }
 
 interface ExtensionWindow extends Window {
@@ -22,9 +27,16 @@ interface ExtensionWindow extends Window {
 
 declare const window: ExtensionWindow;
 
-if (!window[EXTENSION_NAME]) {
-    window[EXTENSION_NAME] = {
-        showChat,
-        shownChatBoxes: {},
-    };
-}
+(async () => {
+    const key = await generateKey();
+
+    if (!window[EXTENSION_NAME]) {
+        window[EXTENSION_NAME] = {
+            showChat,
+            shownChatBoxes: {},
+            encryption: {
+                key
+            }
+        };
+    }
+})();

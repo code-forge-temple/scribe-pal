@@ -179,7 +179,7 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove}: ChatBoxPr
 
         polyfillRuntimeConnect({
             name: MESSAGE_TYPES.FETCH_AI_RESPONSE,
-            data: {type: MESSAGE_TYPES.FETCH_AI_RESPONSE, message: conversation, model: selectedModel},
+            data: {type: MESSAGE_TYPES.FETCH_AI_RESPONSE, messages: conversation, model: selectedModel},
             onMessage: (response) => {
                 if ("error" in response) {
                     setChatLog({

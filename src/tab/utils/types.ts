@@ -28,6 +28,11 @@ export type ErrorResponse = {
     error: string;
 }
 
+export type Message = {
+    role: string;
+    content: string;
+};
+
 export type FetchModelResponse =
     | {success: true; reply: number}
     | ErrorResponse;
@@ -43,12 +48,50 @@ export type MessageData = {
     };
     [MESSAGE_TYPES.FETCH_AI_RESPONSE]: {
         type: typeof MESSAGE_TYPES.FETCH_AI_RESPONSE;
-        message: any;
+        messages: Message[];
         model: string;
     };
 }
 
-type MessageResponse = {
+const isMessages = (messages: unknown): messages is Message[] => {
+    if (!Array.isArray(messages)) return false;
+
+    if (messages.some((message: unknown) => {
+        if (typeof message !== "object" || message === null) return true;
+
+        if (!("role" in message) || typeof message["role"] !== "string") return true;
+
+        if (!("content" in message) || typeof message["content"] !== "string") return true;
+
+        return false;
+    })) return false;
+
+    return true;
+}
+
+export const isFetchModelMessageData = (data: unknown): data is MessageData[typeof MESSAGE_TYPES.FETCH_MODEL] => {
+    if(typeof data !== "object" || data === null) return false;
+
+    if(!("type" in data) || data["type"] !== MESSAGE_TYPES.FETCH_MODEL) return false;
+
+    if(!("model" in data) || typeof data["model"] !== "string") return false;
+
+    return true;
+}
+
+export const isFetchAiResponseMessageData = (data: unknown): data is MessageData[typeof MESSAGE_TYPES.FETCH_AI_RESPONSE] => {
+    if(typeof data !== "object" || data === null) return false;
+
+    if(!("type" in data) || data["type"] !== MESSAGE_TYPES.FETCH_AI_RESPONSE) return false;
+
+    if(!("model" in data) || typeof data["model"] !== "string") return false;
+
+    if(!("messages" in data) || !isMessages(data["messages"])) return false;
+
+    return true;
+}
+
+export type MessageResponse = {
     [MESSAGE_TYPES.FETCH_MODEL]: FetchModelResponse;
     [MESSAGE_TYPES.FETCH_AI_RESPONSE]: FetchAiResponse;
 }

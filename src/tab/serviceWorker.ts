@@ -10,6 +10,7 @@ import {EXTENSION_NAME, MESSAGE_TYPES} from "../common/constants";
 import {getTabStorage, setTabStorage} from "./utils/storageHelper";
 import {browser} from "../common/browser";
 import {polyfillScriptingExecuteScript} from "./privilegedAPIs/privilegedAPIs";
+import {isFetchAiResponseMessageData, isFetchModelMessageData} from "./utils/types";
 
 
 type MessageRequest = {
@@ -54,6 +55,7 @@ browser.runtime.onMessage.addListener((
 
                 browser.tabs.sendMessage(tabId, {type: MESSAGE_TYPES.ACTION_OLLAMA_HOST_UPDATED});
             })();
+
             break;
 
         case MESSAGE_TYPES.ACTION_UPDATE_THEME:
@@ -62,6 +64,7 @@ browser.runtime.onMessage.addListener((
 
                 browser.tabs.sendMessage(tabId, {type: MESSAGE_TYPES.ACTION_UPDATE_THEME});
             })();
+
             break;
 
         case MESSAGE_TYPES.FETCH_MODELS:
@@ -91,17 +94,19 @@ browser.runtime.onMessage.addListener((
 
         default:
             console.error("Unknown request type:", request.type);
+
             responseCallback({error: "Unknown request type."});
+
             break;
     }
 });
 
 browser.runtime.onConnect.addListener((port: any) => {
     if (port.name === MESSAGE_TYPES.FETCH_AI_RESPONSE) {
-        port.onMessage.addListener(async (data: any) => {
-            if (data.type === MESSAGE_TYPES.FETCH_AI_RESPONSE && data.message && data.model) {
+        port.onMessage.addListener(async (data: unknown) => {
+            if (isFetchAiResponseMessageData(data)) {
                 try {
-                    const stream = OllamaService.getInstance().fetchAIResponse(data.message, data.model);
+                    const stream = OllamaService.getInstance().fetchAIResponse(data.messages, data.model);
 
                     for await (const part of stream) {
                         port.postMessage(part);
@@ -117,8 +122,8 @@ browser.runtime.onConnect.addListener((port: any) => {
             }
         });
     } else if (port.name === MESSAGE_TYPES.FETCH_MODEL) {
-        port.onMessage.addListener(async (data: any) => {
-            if (data.type === MESSAGE_TYPES.FETCH_MODEL && data.model) {
+        port.onMessage.addListener(async (data: unknown) => {
+            if (isFetchModelMessageData(data)) {
                 try {
                     const stream = OllamaService.getInstance().pullModel(data.model);
 

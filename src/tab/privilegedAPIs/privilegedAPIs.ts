@@ -6,8 +6,9 @@
  ************************************************************************/
 
 import {browser, getManifestVersion} from "../../common/browser";
+import {decrypt, windowPostEncryptedMessage} from "../utils/encryption";
 import {getTabStorage, setTabStorage} from "../utils/storageHelper";
-import {MessageData, RuntimeConnectParams} from "../utils/types";
+import {MessageData, MessageResponse, RuntimeConnectParams} from "../utils/types";
 import {generateUniqueId, runtimeConnect} from "../utils/utils";
 import {PRIVILEGED_API} from "./constants";
 import {
@@ -24,24 +25,29 @@ import {
 
 export const polyfillStorageLocalGet = async (key: string | string[]): Promise<any> => {
     if (browser && browser.storage?.local?.get) {
-        return JSON.parse(JSON.stringify(await browser.storage.local.get(key)));
+        return await browser.storage.local.get(key);
     } else {
         return new Promise((resolve) => {
             const listener = (event: MessageEvent<EventDataResponse>) => {
                 if(!isBrowserStorageLocalGetResponse(event.data)) return;
 
-                const {key: refKey, response} = event.data;
+                const {key: refKey, response: encryptedResponse} = event.data;
 
                 if (refKey === key) {
-
                     window.removeEventListener("message", listener);
 
-                    resolve(JSON.parse(JSON.stringify(response)));
+                    decrypt(encryptedResponse).then(response => {
+                        resolve(response);
+                    });
                 }
             };
 
             window.addEventListener("message", listener);
-            window.postMessage({type: PRIVILEGED_API.BROWSER_STORAGE_LOCAL_GET, payload: {key}}, "*");
+
+            windowPostEncryptedMessage({
+                type: PRIVILEGED_API.BROWSER_STORAGE_LOCAL_GET,
+                payload: {key}
+            }, "payload");
         });
     }
 };
@@ -60,10 +66,11 @@ export const polyfillStorageLocalSet = async (payload: Record<string, any>): Pro
             };
 
             window.addEventListener("message", listener);
-            window.postMessage(
-                {type: PRIVILEGED_API.BROWSER_STORAGE_LOCAL_SET, payload},
-                "*"
-            );
+
+            windowPostEncryptedMessage({
+                type: PRIVILEGED_API.BROWSER_STORAGE_LOCAL_SET,
+                payload
+            }, "payload");
         });
     }
 };
@@ -76,18 +83,21 @@ export const polyfillGetTabStorage = async (tabId: number): Promise<any> => {
             const listener = (event: MessageEvent<EventDataResponse>) => {
                 if(!isGetTabStorageResponse(event.data)) return;
 
-                const {response} = event.data;
+                const {response: encryptedResponse} = event.data;
 
                 window.removeEventListener("message", listener);
 
-                resolve(JSON.parse(JSON.stringify(response)));
+                decrypt(encryptedResponse).then(response => {
+                    resolve(response);
+                });
             };
 
             window.addEventListener("message", listener);
-            window.postMessage(
-                {type: PRIVILEGED_API.GET_TAB_STORAGE, payload: {tabId}},
-                "*"
-            );
+
+            windowPostEncryptedMessage({
+                type: PRIVILEGED_API.GET_TAB_STORAGE,
+                payload: {tabId}
+            }, "payload");
         });
     }
 };
@@ -106,10 +116,11 @@ export const polyfillSetTabStorage = async (tabId: number, tabContents: any): Pr
             };
 
             window.addEventListener("message", listener);
-            window.postMessage(
-                {type: PRIVILEGED_API.SET_TAB_STORAGE, payload: {tabId, tabContents}},
-                "*"
-            );
+
+            windowPostEncryptedMessage({
+                type: PRIVILEGED_API.SET_TAB_STORAGE,
+                payload: {tabId, tabContents}
+            }, "payload");
         });
     }
 };
@@ -124,20 +135,24 @@ export const polyfillRuntimeSendMessage = async (payload: any): Promise<any> => 
             const listener = (event: MessageEvent<EventDataResponse>) => {
                 if(!isBrowserRuntimeSendMessageResponse(event.data)) return;
 
-                const {requestId: refRequestId, response} = event.data;
+                const {requestId: refRequestId, response: encryptedResponse} = event.data;
 
                 if (refRequestId === requestId) {
                     window.removeEventListener("message", listener);
 
-                    resolve(response);
+                    decrypt(encryptedResponse).then(response => {
+                        resolve(response);
+                    });
                 }
             };
 
             window.addEventListener("message", listener);
-            window.postMessage(
-                {type: PRIVILEGED_API.BROWSER_RUNTIME_SEND_MESSAGE, payload, requestId},
-                "*"
-            );
+
+            windowPostEncryptedMessage({
+                type: PRIVILEGED_API.BROWSER_RUNTIME_SEND_MESSAGE,
+                payload,
+                requestId
+            }, "payload");
         });
     }
 };
@@ -178,10 +193,12 @@ export const polyfillRuntimeConnect = <D extends keyof MessageData>({name, data,
         const portId = generateUniqueId();
         const listener = (event: MessageEvent<EventDataResponse>) => {
             if(isBrowserRuntimeConnectResponse(event.data)) {
-                const {portId: refPortId, response} = event.data;
+                const {portId: refPortId, response: encryptedResponse} = event.data;
 
                 if (refPortId === portId) {
-                    onMessage(response);
+                    decrypt<MessageResponse[D]>(encryptedResponse).then(response => {
+                        onMessage(response);
+                    });
                 }
             } else if(isBrowserRuntimeConnectResponseDisconnect(event.data)) {
                 window.removeEventListener("message", listener);
@@ -189,15 +206,12 @@ export const polyfillRuntimeConnect = <D extends keyof MessageData>({name, data,
         };
 
         window.addEventListener("message", listener);
-        window.postMessage(
-            {
-                type: PRIVILEGED_API.BROWSER_RUNTIME_CONNECT,
-                name,
-                payload: data,
-                portId,
-            },
-            "*"
-        );
-    }
 
+        windowPostEncryptedMessage({
+            type: PRIVILEGED_API.BROWSER_RUNTIME_CONNECT,
+            name,
+            payload: data,
+            portId,
+        }, "payload");
+    }
 }
