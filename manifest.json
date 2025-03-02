@@ -24,6 +24,16 @@
         "scripting",
         "storage",
         "webNavigation",
-        "notifications"
-    ]
+        "notifications",
+        "commands"
+    ],
+    "commands": {
+        "show-chat": {
+            "suggested_key": {
+                "default": "Ctrl+Shift+Y",
+                "mac": "Command+Shift+Y"
+            },
+            "description": "Show ScribePal chat"
+        }
+    }
 }

@@ -21,6 +21,18 @@ const showNotification = (title: string, message: string) => {
 };
 
 document.addEventListener("DOMContentLoaded", () => {
+    if (browser.commands && browser.commands.getAll) {
+        browser.commands.getAll().then((commands: any[]) => {
+            const showChatCommand = commands.find(cmd => cmd.name === 'show-chat');
+            const shortcutInput = document.getElementById("keyboard-shortcut") as HTMLInputElement;
+
+            if (showChatCommand?.shortcut && shortcutInput) {
+                shortcutInput.value = showChatCommand.shortcut;
+                shortcutInput.title = "Click 'Change Shortcut' to modify";
+            }
+        });
+    }
+
     browser.storage.local.get(["ollamaHost", "activeTheme"], (result: any) => {
         const ollamaUrl = document.getElementById("ollama-url") as HTMLInputElement;
         const toggle = document.getElementById("dark-theme-toggle") as HTMLImageElement | null;
@@ -90,4 +102,33 @@ document.getElementById("showChat")?.addEventListener("click", () => {
         type: MESSAGE_TYPES.ACTION_SHOW_CHAT,
         message: "showChat",
     });
+});
+
+document.getElementById("save-keyboard-shortcut")?.addEventListener("click", async () => {
+    try {
+        const isFirefox = navigator.userAgent.toLowerCase().indexOf('firefox') > -1;
+
+        if (isFirefox) {
+            showNotification(
+                "Keyboard Shortcuts",
+                "Type 'about:addons' in URL bar → Extensions → ScribePal → ⚙️ → Shortcuts"
+            );
+        } else {
+            await browser.tabs.create({
+                url: 'chrome://extensions/shortcuts'
+            });
+
+            showNotification(
+                "Keyboard Shortcuts",
+                "Please modify the shortcut in Chrome's extension shortcuts page"
+            );
+        }
+    } catch (error) {
+        console.error('Error handling shortcuts:', error);
+
+        showNotification(
+            "Keyboard Shortcuts",
+            `Error handling shortcuts: ${error}`
+        );
+    }
 });

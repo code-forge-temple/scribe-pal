@@ -177,7 +177,7 @@ To install the the compiled extension, for:
      Use the toggle switch to activate the dark theme as desired.
 
 3. **Launch the Chat Interface:**
-   - Click “Show ScribePal chat” within the popup.
+   - Click “Show ScribePal chat” within the popup, or within the current page press Ctrl+Shift+Y.
    - A draggable chat box will open on the active webpage.
    - Use the chat interface to send messages to the Ollama AI service, review conversation history, and manage models.
    - Additional features include capturing selected HTML content (that can be referenced in the discussion with `@captured` tag) and customizing prompts (to instruct the loaded model on how to answer).

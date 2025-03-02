@@ -27,23 +27,7 @@ browser.runtime.onMessage.addListener((
 ) => {
     switch (request.type) {
         case MESSAGE_TYPES.ACTION_SHOW_CHAT:
-            (async () => {
-                const [{id: tabId}] = await browser.tabs.query({currentWindow: true, active: true});
-                const chatBoxId = crypto.randomUUID();
-
-                if (!tabId) return;
-
-                if (await isScriptInjected(tabId)) {
-                    await showChat(tabId, chatBoxId);
-                } else {
-                    await polyfillScriptingExecuteScript({
-                        target: {tabId},
-                        files: ["injectedScript.js"],
-                    });
-
-                    await showChat(tabId, chatBoxId);
-                }
-            })();
+            actionShowChat();
 
             break;
 
@@ -171,6 +155,12 @@ browser.tabs.onRemoved.addListener((tabId: any) => {
     })();
 });
 
+browser.commands.onCommand.addListener((command:string) => {
+    if (command === "show-chat") {
+        actionShowChat();
+    }
+});
+
 const isScriptInjected = async (tabId: number) => {
     const injectionResults = await polyfillScriptingExecuteScript({
         target: {tabId},
@@ -194,6 +184,24 @@ const isChatShown = async (tabId: number, chatBoxId: string) => {
     const chatIsShown:boolean = querySelector[0]?.result;
 
     return chatIsShown;
+}
+
+const actionShowChat = async () => {
+    const [{id: tabId}] = await browser.tabs.query({currentWindow: true, active: true});
+    const chatBoxId = crypto.randomUUID();
+
+    if (!tabId) return;
+
+    if (await isScriptInjected(tabId)) {
+        await showChat(tabId, chatBoxId);
+    } else {
+        await polyfillScriptingExecuteScript({
+            target: {tabId},
+            files: ["injectedScript.js"],
+        });
+
+        await showChat(tabId, chatBoxId);
+    }
 }
 
 const showChat = async (tabId: number, chatBoxId: string) => {

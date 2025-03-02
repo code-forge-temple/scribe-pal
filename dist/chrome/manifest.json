@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "ScribePal",
-    "version": "1.0.1",
+    "version": "1.1.1",
     "description": "ScribePal is an intelligent browser extension that leverages AI to empower your web experience.",
     "action": {
         "default_popup": "popup.html",
@@ -24,6 +24,16 @@
         "scripting",
         "storage",
         "webNavigation",
-        "notifications"
-    ]
+        "notifications",
+        "commands"
+    ],
+    "commands": {
+        "show-chat": {
+            "suggested_key": {
+                "default": "Ctrl+Shift+Y",
+                "mac": "Command+Shift+Y"
+            },
+            "description": "Show ScribePal chat"
+        }
+    }
 }

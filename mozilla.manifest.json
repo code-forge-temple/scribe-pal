@@ -41,5 +41,14 @@
             "id": "TBD",
             "strict_min_version": "91.0"
         }
+    },
+    "commands": {
+        "show-chat": {
+            "suggested_key": {
+                "default": "Ctrl+Shift+Y",
+                "mac": "Command+Shift+Y"
+            },
+            "description": "Show ScribePal chat"
+        }
     }
 }
