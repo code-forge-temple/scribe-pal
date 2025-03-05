@@ -89,13 +89,15 @@ const privilegedApiRequestsHandler = <T extends keyof MessageData>(event: Messag
                     }, "response");
                 },
                 onDisconnect: () => {
-                    window.postMessage(
-                        {
-                            type: `${PRIVILEGED_API.BROWSER_RUNTIME_CONNECT}.response.disconnect`,
-                            portId
-                        },
-                        "*"
-                    );
+                    setTimeout((portIdRef) => {
+                        window.postMessage(
+                            {
+                                type: `${PRIVILEGED_API.BROWSER_RUNTIME_CONNECT}.response.disconnect`,
+                                portId: portIdRef
+                            },
+                            "*"
+                        );
+                    }, 100, portId);
                 }
             });
 

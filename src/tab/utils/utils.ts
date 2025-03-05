@@ -25,12 +25,11 @@ export const runtimeConnect = <D extends keyof MessageData>({name, data, onMessa
     port.onMessage.addListener(listener);
 
     port.onDisconnect.addListener(() => {
-        setTimeout(() => {
+        try {
             port.disconnect();
             port.onMessage.removeListener(listener);
-
+        } finally {
             if(onDisconnect) onDisconnect();
-        }, 0);
-
+        }
     });
 }
