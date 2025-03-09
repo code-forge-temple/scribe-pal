@@ -16,9 +16,12 @@ ScribePal is an Open Source intelligent browser extension that leverages AI to e
         - [Windows](#windows)
     - [Development](#development)
         - [Installation](#installation)
+        - [Alternative Installation Options](#alternative-installation-options)
+        - [Install via Browser Stores](#install-via-browser-stores)
+        - [Download from Releases](#download-from-releases)
         - [Building](#building)
-            - [I. For development:](#i-for-development)
-            - [II. For production:](#ii-for-production)
+            - [I. For development](#i-for-development)
+            - [II. For production](#ii-for-production)
         - [Linting](#linting)
         - [Installing](#installing)
     - [Usage](#usage)
@@ -41,7 +44,7 @@ It is compatible with all Chromium and Gecko-based browsers: Chrome, Vivaldi, Op
 - **Theming:** Supports light and dark themes.
 - **Chat Interface:** A draggable chat box for sending and receiving messages.
 - **Model Management:** Select, refresh, download, and delete models.
-- **Capture Tool:** Highlight HTML elements to capture text for the chat input.
+- **Advanced Capture Tools:** Options for capturing both text and images are available. Captured content is inserted directly into your chat using special tags (`@captured-text` for text and `@captured-image` for images).
 - **Prompt Customization:** Adjust and customize prompts to instruct the AI model on how to generate responses.
 
 ## Prerequisites
@@ -110,9 +113,31 @@ Also, ensure that the [Ollama](https://ollama.com) host is installed on your loc
     npm install
     ```
 
+### Alternative Installation Options
+
+If you're not a developer, you can choose one of the following methods:
+
+### 1. Install via Browser Stores
+
+  [![Chrome Store](./badges/chrome-add-on-badge.png)](https://chromewebstore.google.com/detail/godcjpkfkipmljclkgmohpookphckdfl?utm_source=github-repo)
+  [![Edge Store](./badges/edge-add-on-badge.png)](https://microsoftedge.microsoft.com/addons/detail/scribepal/omffcjaihckmfdphencecfigafaoocmb)
+  [![Firefox Add-on](./badges/firefox-add-on-badge.png)](https://addons.mozilla.org/en-US/firefox/addon/scribe-pal/)
+
+> [!NOTE]
+> Releases available in the browser stores might be slightly out of sync with the GitHub releases. This can be due to the review process, packaging delays, or manual submission requirements. For the most up-to-date version, please refer to the [Releases](https://github.com/code-forge-temple/scribe-pal/releases) page.
+
+### 2. Download from Releases
+
+Visit the [Releases](https://github.com/code-forge-temple/scribe-pal/releases) page to download the latest packages:
+
+- For Chromium-based browsers, download `chrome.zip`.
+- For Gecko-based browsers, download `firefox.zip`.
+
+After downloading, unzip the package and [install](#installing) the extension manually.
+
 ### Building
 
-#### I. For development:
+#### I. For development
 
 To build the project for development, run:
 
@@ -126,7 +151,7 @@ B. For Gecko-based browsers like Firefox, Waterfox, Pale Moon, and others:
 npm run dev:firefox
 ```
 
-#### II. For production:
+#### II. For production
 
 To build the project for production, run:
 
@@ -177,10 +202,10 @@ To install the the compiled extension, for:
      Use the toggle switch to activate the dark theme as desired.
 
 3. **Launch the Chat Interface:**
-   - Click “Show ScribePal chat” within the popup, or within the current page press Ctrl+Shift+Y.
-   - A draggable chat box will open on the active webpage.
+   - Click “Show ScribePal chat” in the popup or press Ctrl+Shift+Y.
+   - A responsive, draggable chat box will open on the active webpage.
    - Use the chat interface to send messages to the Ollama AI service, review conversation history, and manage models.
-   - Additional features include capturing selected HTML content (that can be referenced in the discussion with `@captured` tag) and customizing prompts (to instruct the loaded model on how to answer).
+   - Additional features include capturing selected HTML content (that can be referenced in the discussion with `@captured-text` tag), capturing an image of an area on the page (that can be referenced in the discussion with `@captured-image` tag) and customizing prompts (to instruct the loaded model on how to answer).
 
 4. **Interacting with the Chat:**
    - Type your query in the chat input and press Enter or click the `Send` button.
