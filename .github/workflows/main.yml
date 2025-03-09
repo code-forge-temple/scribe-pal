@@ -3,7 +3,17 @@ name: Build and Release
 on:
   push:
     branches: [main]
+    paths:
+      - "src/**"
+      - "webpack.config.mjs"
+      - "package.json"
+      - ".github/workflows/**"
   pull_request:
+    paths:
+      - "src/**"
+      - "webpack.config.mjs"
+      - "package.json"
+      - ".github/workflows/**"
 
 permissions:
   contents: write

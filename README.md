@@ -6,26 +6,23 @@ ScribePal is an Open Source intelligent browser extension that leverages AI to e
 
 <!-- TOC -->
 
-- [ScribePal](#scribepal)
-    - [Table of Contents](#table-of-contents)
-    - [Privacy](#privacy)
-    - [Compatibility](#compatibility)
-    - [Features](#features)
-    - [Prerequisites](#prerequisites)
-        - [Linux](#linux)
-        - [Windows](#windows)
-    - [Development](#development)
-        - [Installation](#installation)
-        - [Alternative Installation Options](#alternative-installation-options)
-        - [Install via Browser Stores](#install-via-browser-stores)
-        - [Download from Releases](#download-from-releases)
-        - [Building](#building)
-            - [I. For development](#i-for-development)
-            - [II. For production](#ii-for-production)
-        - [Linting](#linting)
-        - [Installing](#installing)
-    - [Usage](#usage)
-    - [License](#license)
+- [Table of Contents](#table-of-contents)
+- [Privacy](#privacy)
+- [Compatibility](#compatibility)
+- [Features](#features)
+- [Prerequisites](#prerequisites)
+    - [Linux](#linux)
+    - [Windows](#windows)
+- [Development](#development)
+    - [Installation](#installation)
+    - [Alternative Installation Options](#alternative-installation-options)
+    - [1. Install via Browser Stores](#1-install-via-browser-stores)
+    - [2. Download from Releases](#2-download-from-releases)
+    - [Building](#building)
+    - [Linting](#linting)
+    - [Installing in browser](#installing-in-browser)
+- [Usage](#usage)
+- [License](#license)
 
 <!-- /TOC -->
 
@@ -172,7 +169,7 @@ To lint the project, run:
 npm run lint
 ```
 
-### Installing
+### Installing in browser
 
 To install the the compiled extension, for:
 - Chromium based browsers you need to go to 
@@ -205,7 +202,7 @@ To install the the compiled extension, for:
    - Click “Show ScribePal chat” in the popup or press Ctrl+Shift+Y.
    - A responsive, draggable chat box will open on the active webpage.
    - Use the chat interface to send messages to the Ollama AI service, review conversation history, and manage models.
-   - Additional features include capturing selected HTML content (that can be referenced in the discussion with `@captured-text` tag), capturing an image of an area on the page (that can be referenced in the discussion with `@captured-image` tag) and customizing prompts (to instruct the loaded model on how to answer).
+   - Additional features include capturing selected HTML content (that can be referenced in the discussion with `@captured-text` tag), capturing an image of an area on the page (that can be referenced in the discussion with `@captured-image` tag) for VISION LLMs, and customizing prompts (to instruct the loaded model on how to answer).
 
 4. **Interacting with the Chat:**
    - Type your query in the chat input and press Enter or click the `Send` button.
