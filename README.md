@@ -123,7 +123,7 @@ npm run dev:chrome
 
 B. For Gecko-based browsers like Firefox, Waterfox, Pale Moon, and others:
 ```sh
-npm run dev:mozilla
+npm run dev:firefox
 ```
 
 #### II. For production:
@@ -137,7 +137,7 @@ To build the project for production, run:
 
 2. For Gecko-based browsers:
     ```sh
-    npm run build:mozilla
+    npm run build:firefox
     ```
 
 ### Linting
@@ -162,7 +162,7 @@ To install the the compiled extension, for:
     - `about:debugging#/runtime/this-firefox`
     - etc.
 
-    and click on `Load Temporary Add-on…` then select `<scribe-pal folder>/dist/mozilla` folder.
+    and click on `Load Temporary Add-on…` then select `<scribe-pal folder>/dist/firefox` folder.
 
 ## Usage
 

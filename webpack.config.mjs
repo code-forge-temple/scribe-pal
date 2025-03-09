@@ -11,7 +11,7 @@ export default (env) => {
     const browser = env.browser || "chrome";
     const updatedBaseConfig = baseConfig(
         browser,
-        browser === "chrome" ? "manifest.json" : "mozilla.manifest.json"
+        browser === "chrome" ? "manifest.json" : "firefox.manifest.json"
     );
 
     if (browser !== "chrome") {

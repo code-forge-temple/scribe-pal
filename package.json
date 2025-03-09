@@ -8,12 +8,12 @@
     "scripts": {
         "typecheck": "tsc --noEmit",
         "dev:chrome": "tsc --noEmit && webpack --mode development --env browser=chrome --config webpack.config.mjs",
-        "dev:mozilla": "tsc --noEmit && webpack --mode development --env browser=mozilla --config webpack.config.mjs",
+        "dev:firefox": "tsc --noEmit && webpack --mode development --env browser=firefox --config webpack.config.mjs",
         "build:chrome": "tsc --noEmit && webpack --mode production --env browser=chrome --config webpack.config.mjs",
-        "build:mozilla": "tsc --noEmit && webpack --mode production --env browser=mozilla --config webpack.config.mjs",
+        "build:firefox": "tsc --noEmit && webpack --mode production --env browser=firefox --config webpack.config.mjs",
         "lint": "eslint .",
-        "dev": "npm run lint && concurrently \"npm run dev:chrome\" \"npm run dev:mozilla\"",
-        "build": "npm run lint && concurrently \"npm run build:chrome\" \"npm run build:mozilla\""
+        "dev": "npm run lint && concurrently \"npm run dev:chrome\" \"npm run dev:firefox\"",
+        "build": "npm run lint && concurrently \"npm run build:chrome\" \"npm run build:firefox\""
     },
     "dependencies": {
         "crypto-browserify": "^3.12.1",
