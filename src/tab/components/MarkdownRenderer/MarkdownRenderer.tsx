@@ -56,6 +56,9 @@ export const MarkdownRenderer = withShadowStyles(React.memo(({content}:MarkdownR
         <ReactMarkdown
             children={content}
             remarkPlugins={[remarkGfm]}
+            urlTransform={(url: string) =>
+                url.startsWith("data:") ? url : url
+            }
             components={components}
         />
     );

@@ -21,6 +21,24 @@ const showNotification = (title: string, message: string) => {
 };
 
 document.addEventListener("DOMContentLoaded", () => {
+    const toggleBtn = document.getElementById("extra-settings-toggle");
+    const extraSettings = document.querySelector(".extra-settings");
+
+    if (toggleBtn && extraSettings) {
+        toggleBtn.addEventListener("click", () => {
+            extraSettings.classList.toggle("collapsed");
+            toggleBtn.classList.toggle("rotated");
+
+            /* For Firefox */
+            document.documentElement.style.height = "auto";
+
+            setTimeout(() => {
+                document.documentElement.style.height = `${document.body.scrollHeight}px`;
+            }, 500);
+            /***************/
+        });
+    }
+
     if (browser.commands && browser.commands.getAll) {
         browser.commands.getAll().then((commands: any[]) => {
             const showChatCommand = commands.find(cmd => cmd.name === 'show-chat');
@@ -29,6 +47,12 @@ document.addEventListener("DOMContentLoaded", () => {
             if (showChatCommand?.shortcut && shortcutInput) {
                 shortcutInput.value = showChatCommand.shortcut;
                 shortcutInput.title = "Click 'Change Shortcut' to modify";
+
+                const showChatButton = document.getElementById("showChat");
+
+                if(showChatButton) {
+                    showChatButton.textContent = `${showChatButton.textContent} (${showChatCommand.shortcut})`;
+                }
             }
         });
     }

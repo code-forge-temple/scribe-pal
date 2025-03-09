@@ -17,7 +17,6 @@ body {
     .list-group-item {
         position: relative;
         margin-bottom: -1px;
-        border: 1px solid #ccc;
     }
 
     .list-group-item:hover {
@@ -27,11 +26,44 @@ body {
     }
 }
 
-.menu-item {
+$menu-item-height: 40px;
+$menu-item-padding: 5px;
+$menu-item-border-bottom: 1px;
+
+.menu-item,
+.menu-item-short {
     display: flex;
     align-items: center;
-    padding: 5px;
-    height: 40px;
+    padding: $menu-item-padding;
+    height: $menu-item-height;
+    border-bottom: $menu-item-border-bottom solid #ccc;
+}
+
+.menu-item-short {
+    height: 20px;
+}
+
+#extra-settings-toggle {
+    height: 25px;
+    margin: auto;
+    cursor: pointer;
+    transition: transform 0.5s ease;
+}
+
+.rotated {
+    transform: rotate(180deg);
+}
+
+$extra-settings-items: 1; // TODO: if we add more settings, we need to update this value
+
+.extra-settings {
+    overflow: hidden;
+    transition: max-height 0.5s ease-in-out;
+    max-height: calc($menu-item-height + $menu-item-padding*2 + $menu-item-border-bottom) * $extra-settings-items;
+}
+
+.collapsed {
+    max-height: 0;
 }
 
 .theme-selection {
@@ -47,10 +79,9 @@ body {
 }
 
 .input-with-button {
-    border-bottom: .1px solid #ccc;
-
     label {
         padding-right: 5px;
+        min-width: 110px;
     }
 
     input[type="text"] {
@@ -67,6 +98,7 @@ body {
         border: none;
         border-radius: 0 4px 4px 0;
         cursor: pointer;
+        min-width: 75px;
 
         &:hover {
             background: #005fa3;
@@ -78,6 +110,11 @@ body {
     background: vars.$dark-theme-primary-color;
     color: white;
 
+    .menu-item,
+    .menu-item-short {
+        border-color: vars.$dark-theme-secondary-color;
+    }
+
     .input-with-button {
         border-color: vars.$dark-theme-secondary-color;
 
@@ -86,9 +123,5 @@ body {
             color: white;
             border-color: vars.$dark-theme-secondary-color !important;
         }
-    }
-
-    .list-group-item {
-        border-color: vars.$dark-theme-secondary-color;
     }
 }

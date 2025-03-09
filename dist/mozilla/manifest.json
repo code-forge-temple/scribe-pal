@@ -1,7 +1,7 @@
 {
     "manifest_version": 2,
     "name": "ScribePal",
-    "version": "1.1.2",
+    "version": "1.2.0",
     "description": "ScribePal is an intelligent browser extension that leverages AI to empower your web experience.",
     "browser_action": {
         "default_popup": "popup.html",

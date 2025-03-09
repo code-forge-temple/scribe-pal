@@ -20,17 +20,23 @@ import {RichTextModal} from "./components/RichTextModal";
 import {ReferencesList} from "./components/ReferencesList";
 import {prefixChatBoxId} from "../../utils/utils";
 import PromptSvg from '../../assets/eye-solid.svg';
-import CaptureSvg from '../../assets/square-dashed.svg';
+import CaptureTxtSvg from '../../assets/menu-scale.svg';
+import CaptureImgSvg from '../../assets/media-image.svg';
 import {useTheme} from "../../hooks/useTheme";
 import {polyfillRuntimeSendMessage, polyfillGetTabStorage, polyfillRuntimeConnect, polyfillSetTabStorage} from "../../privilegedAPIs/privilegedAPIs";
 import {browser} from "../../../common/browser";
 import styles from "./ChatBox.scss?inline";
 import {withShadowStyles} from "../../utils/withShadowStyles";
+import {startCaptureImage} from "../../features/capture/captureImageTool";
+import {ImageModal} from "./components/ImageModal";
+import {CAPTURED_IMAGE_TAG, CAPTURED_TAG} from "../../utils/constants";
 
-const CAPTURED_TAG = "@captured";
+const formatMessage = (message: string, capturedText: string, capturedImage: string) => {
+    let newMessage = message.replace(CAPTURED_IMAGE_TAG, capturedImage ? (`\n![Captured Image](${capturedImage})\n`) : "");
 
-const formatMessage = (message: string, capturedText: string) => {
-    return message.replace(CAPTURED_TAG, capturedText ? ("\n```text\n" + capturedText + "\n```\n") : "");
+    newMessage = newMessage.replace(CAPTURED_TAG, capturedText ? ("\n```text\n" + capturedText + "\n```\n") : "");
+
+    return newMessage;
 }
 
 const ROLE = {
@@ -51,7 +57,9 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove}: ChatBoxPr
     const [models, setModels] = useState<Model[]>([]);
     const [isMinimized, setIsMinimized] = usePersistentState<boolean>("chatBoxMinimized", false, {tabId, chatBoxId});
     const [capturedText, setCapturedText] = usePersistentState<string>("capturedText", "", {tabId, chatBoxId});
+    const [capturedImage, setCapturedImage] = usePersistentState<string>("capturedImage", "", {tabId, chatBoxId});
     const [capturedModalVisible, setCapturedModalVisible] = useState<boolean>(false);
+    const [capturedImageModalVisible, setCapturedImageModalVisible] = useState<boolean>(false);
     const [promptMessage, setPromptMessage] = usePersistentState<string>("promptMessage", "", {tabId, chatBoxId});
     const [promptModalVisible, setPromptModalVisible] = useState<boolean>(false);
     const updateTheme = useTheme(boxRef);
@@ -141,7 +149,7 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove}: ChatBoxPr
     const handleSend = async () => {
         if (message.trim() === "") return;
 
-        const formattedMessage = formatMessage(message, capturedText);
+        const formattedMessage = formatMessage(message, capturedText, capturedImage);
 
         const conversationHistory = chatLog
             .filter((msg) => !msg.loading)
@@ -237,6 +245,7 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove}: ChatBoxPr
     };
 
     const handleMinimize = () => { setIsMinimized(!isMinimized); };
+
     const toggleChatVisibility = (visible: boolean) => {
         window.postMessage(
             {
@@ -276,8 +285,14 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove}: ChatBoxPr
                     <ChatLog
                         messages={chatLog}
                         isMinimized={isMinimized}
-                        chatBoxIds={{tabId, chatBoxId}}
                         onDeleteMessage={handleDeleteMessage}
+                        onCopyMessage={(msgId: string) => {
+                            const foundMessage = chatLog.find((msg) => msg.id === msgId);
+                            const message = (foundMessage?.text ?? '').replace(`${EXTENSION_NAME}: `, "");
+
+                            navigator.clipboard.writeText(message);
+                        }
+                        }
                     />
                     <Tools actions={[
                         {
@@ -291,14 +306,29 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove}: ChatBoxPr
                                     setCapturedModalVisible(true);
                                 });
                             },
-                            label: "Capture",
-                            icon: capturedText ? <CaptureSvg className="icon" /> : undefined
+                            label: <>Capture <CaptureTxtSvg className={capturedText ? "icon" : ""} /></>,
+                            tooltip: "capture text",
+                        },
+                        {
+                            call: () => {
+                                toggleChatVisibility(false);
+
+                                startCaptureImage((capturedImageBase64) => {
+                                    toggleChatVisibility(true);
+
+                                    setCapturedImage(capturedImageBase64);
+                                    setCapturedImageModalVisible(true);
+                                });
+                            },
+                            label: <>Capture <CaptureImgSvg className={capturedImage ? "icon" : ""} /></>,
+                            tooltip: "capture image",
                         },
                         {
                             call: () => {
                                 setPromptModalVisible(true);
                             },
                             label: "Prompt",
+                            tooltip: "prompt",
                             icon: promptMessage ? <PromptSvg className="icon" /> : undefined
                         }
                     ]} />
@@ -315,6 +345,18 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove}: ChatBoxPr
                                 }
                             }
                         ] : []),
+                        ... (capturedImage ? [
+                            {
+                                text: CAPTURED_IMAGE_TAG,
+                                tooltip: "Click to view captured image",
+                                onClick: () => {
+                                    setCapturedImageModalVisible(true);
+                                },
+                                onClose: () => {
+                                    setCapturedImage("");
+                                }
+                            }
+                        ] : []),
 
                     ]} />
                     <RichTextModal
@@ -322,6 +364,11 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove}: ChatBoxPr
                         richText={capturedText}
                         closeButtonName="Save"
                         onUpdate={(txt:string) => { setCapturedText(txt); setCapturedModalVisible(false); }} />
+                    <ImageModal
+                        visible={capturedImageModalVisible}
+                        imageBase64={capturedImage}
+                        closeButtonName="Save"
+                        onUpdate={(txt:string) => { setCapturedImage(txt); setCapturedImageModalVisible(false); }} />
                     <RichTextModal
                         visible={promptModalVisible}
                         richText={promptMessage}

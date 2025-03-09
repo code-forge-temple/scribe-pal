@@ -31,6 +31,7 @@ export type ErrorResponse = {
 export type Message = {
     role: string;
     content: string;
+    images?: string[];
 };
 
 export type FetchModelResponse =

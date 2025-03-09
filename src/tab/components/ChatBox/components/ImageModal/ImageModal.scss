@@ -1,27 +1,17 @@
 @use "../../../../../common/styles/variables.scss" as commonVars;
 @use "../../../../styles/mixins.scss" as mixins;
 
-.rich-text-modal {
+.image-modal {
     @include mixins.modal-window;
+    width: auto;
 
-    @mixin main-textarea {
-        resize: none;
-        width: 100%;
-        padding: 8px;
-        border-radius: 4px;
-        border: 1px solid #ccc;
-        background: #fff;
-        color: black;
-    }
+    .image-container {
+        overflow: auto;
+        display: flex;
 
-    .textarea {
-        @include main-textarea;
-
-        height: 300px;
-    }
-
-    .textarea-single-line {
-        @include main-textarea;
+        img {
+            margin: auto;
+        }
     }
 
     .modal-buttons {
@@ -37,7 +27,7 @@
 }
 
 .dark-theme {
-    .rich-text-modal {
+    .image-modal {
         background: commonVars.$dark-theme-primary-color;
         border-color: commonVars.$dark-theme-primary-color;
 

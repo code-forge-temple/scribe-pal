@@ -42,6 +42,7 @@ export const useChatLog = ({tabId, chatBoxId}: ChatBoxIds) => {
         (async () => {
             const currentTab = await polyfillGetTabStorage(tabId);
             const storedLog = currentTab.chatBoxes?.[chatBoxId]?.chatBoxChatLog;
+
             if (storedLog !== undefined) {
                 setChatLogState(storedLog);
             }
@@ -58,9 +59,9 @@ export const useChatLog = ({tabId, chatBoxId}: ChatBoxIds) => {
         });
     }, [tabId, chatBoxId]);
 
-    function updateChatLog(params: NewChatLogParams, persist?: boolean): string;
-    function updateChatLog(params: ExistingChatLogParams, persist?: boolean): undefined;
-    function updateChatLog(params: DeleteChatLogParams, persist?: boolean): undefined;
+    function updateChatLog (params: NewChatLogParams, persist?: boolean): string;
+    function updateChatLog (params: ExistingChatLogParams, persist?: boolean): undefined;
+    function updateChatLog (params: DeleteChatLogParams, persist?: boolean): undefined;
     function updateChatLog (
         params: UpdateChatLogParams | DeleteChatLogParams,
         persist: boolean = true
@@ -85,6 +86,7 @@ export const useChatLog = ({tabId, chatBoxId}: ChatBoxIds) => {
                         ? {...msg, text: params.text, loading: params.loading}
                         : msg
                 );
+
                 if (persist) {
                     persistChatLog(updated);
                 }

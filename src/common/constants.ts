@@ -18,4 +18,5 @@ export const MESSAGE_TYPES = {
     CAPTURE_HTML: "captureHtml",
     DELETE_MODEL: "deleteModel",
     TOGGLE_CHAT_VISIBILITY: "toggleChatVisibility",
+    CAPTURE_VISIBLE_TAB: "captureVisibleTab",
 } as const;

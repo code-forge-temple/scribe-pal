@@ -11,7 +11,8 @@ import {withShadowStyles} from "../../../../utils/withShadowStyles";
 import styles from "./Tools.scss?inline";
 
 type ToolAction = {
-    label: string;
+    label: React.ReactNode;
+    tooltip: string;
     call: () => void;
     icon?: React.ReactNode;
 };
@@ -26,6 +27,7 @@ export const Tools = withShadowStyles(({actions}: ToolsProps) => {
             <div className="tools-group">
                 {actions.map((action, index) => (
                     <button
+                        title={action.tooltip}
                         key={index}
                         type="button"
                         onClick={(e) => {

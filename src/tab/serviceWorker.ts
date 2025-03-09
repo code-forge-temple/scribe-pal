@@ -76,6 +76,22 @@ browser.runtime.onMessage.addListener((
 
             return true;
 
+        case MESSAGE_TYPES.CAPTURE_VISIBLE_TAB:
+            (async () => {
+                const [{windowId}] = await browser.tabs.query({currentWindow: true, active: true});
+
+                browser.tabs.captureVisibleTab(windowId, {format: "png"}, function (dataUrl: string) {
+                    if (chrome.runtime.lastError) {
+                        console.error(chrome.runtime.lastError);
+                        responseCallback({dataUrl: ""});
+                    } else {
+                        responseCallback({dataUrl});
+                    }
+                });
+            })();
+
+            return true;
+
         default:
             console.error("Unknown request type:", request.type);
 

@@ -23,6 +23,12 @@
 .dark-theme {
     background: commonVars.$dark-theme-primary-color;
     color: white;
+
+    input[type="text"]::selection,
+    textarea::selection {
+        background: #3399ff;
+        color: white;
+    }
 }
 
 .prevent-select {

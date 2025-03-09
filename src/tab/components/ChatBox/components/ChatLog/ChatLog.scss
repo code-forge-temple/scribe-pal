@@ -25,7 +25,7 @@
             font-weight: bold;
 
             .delete-message,
-            .spinner {
+            .copy-message {
                 color: #551a8b;
             }
 
@@ -74,6 +74,27 @@
     }
 }
 
+.scroll-to-end {
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    color: #fff;
+    text-align: center;
+    padding: 0;
+    margin: 5px 0 5px 0;
+    background-color: #a9a9a963;
+
+    &:hover {
+        background-color: #a9a9a982;
+    }
+
+    svg {
+        height: 21px;
+        width: auto;
+        margin-top: 5px;
+    }
+}
+
 .dark-theme {
     .chat-log {
         background: commonVars.$dark-theme-secondary-color;
@@ -89,4 +110,17 @@
             }
         }
     }
+
+    .scroll-to-end {
+        background: commonVars.$dark-theme-secondary-color;
+
+        &:hover {
+            background: #2b2a2a;
+        }
+
+        svg {
+            color: #666767;
+        }
+    }
+
 }

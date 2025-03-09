@@ -84,7 +84,12 @@ export class OllamaService {
     ): AsyncGenerator<FetchAiResponse, void, unknown> {
         try {
             const ollama = await this.getOllama();
-            const stream = await ollama.chat({model, messages, stream: true, keep_alive: "30m"});
+            const updatedMessages = messages.map((message) => ({
+                ...message,
+                content: message.content.replace(/!\[.*?\]\(data:image\/\w+;base64,([^)]+)\)/g, "attached image"),
+                images: extractImages(message.content)
+            }));
+            const stream = await ollama.chat({model, messages: updatedMessages, stream: true, keep_alive: "60m"});
             let fullReply = "";
 
             for await (const part of stream) {
@@ -171,4 +176,16 @@ export class OllamaService {
             };
         }
     }
+}
+
+function extractImages (content: string): string[] {
+    const imageRegex = /!\[.*?\]\(data:image\/\w+;base64,([^)]+)\)/g;
+    const images: string[] = [];
+    let match;
+
+    while ((match = imageRegex.exec(content)) !== null) {
+        images.push(match[1]);
+    }
+
+    return images;
 }

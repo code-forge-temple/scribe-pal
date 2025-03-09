@@ -5,9 +5,11 @@
  *    See the LICENSE file in the project root for more information.    *
  ************************************************************************/
 
-import React, {useRef, useState, useLayoutEffect} from 'react';
+import React, {useRef, useState, useLayoutEffect, useEffect} from 'react';
 import styles from "./ChatInput.scss?inline";
 import {withShadowStyles} from '../../../../utils/withShadowStyles';
+import {SUGGESTIONS} from '../../../../utils/constants';
+import {ChatInputSuggestions} from './components/ChatInputSuggestions';
 
 type ChatInputProps = {
     message: string;
@@ -15,12 +17,12 @@ type ChatInputProps = {
     onSend: () => void;
 }
 
-// Custom behavior for the input due to some sites blocking onChange event (probably a global event listener on the main page)
-// and not allowing to change the value of the input field except for some special keys.
-
 export const ChatInput = withShadowStyles(({message, onMessageChange, onSend}: ChatInputProps) => {
     const inputRef = useRef<HTMLInputElement>(null);
     const [caret, setCaret] = useState<number>(0);
+    const [suggestionsVisible, setSuggestionsVisible] = useState(false);
+    const [suggestionPosition, setSuggestionPosition] = useState({top: 0, left: 0});
+    const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0);
 
     useLayoutEffect(() => {
         if (inputRef.current) {
@@ -31,6 +33,7 @@ export const ChatInput = withShadowStyles(({message, onMessageChange, onSend}: C
 
             if (ctx) {
                 const computedStyle = window.getComputedStyle(inputRef.current);
+
                 ctx.font = computedStyle.font;
 
                 const textBeforeCaret = message.slice(0, caret);
@@ -46,6 +49,47 @@ export const ChatInput = withShadowStyles(({message, onMessageChange, onSend}: C
         }
     }, [message, caret]);
 
+    useEffect(() => {
+        const textUpToCaret = message.slice(0, caret);
+        const lastWord = textUpToCaret.split(" ").pop() || "";
+
+        if (lastWord.includes("@") && inputRef.current) {
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+
+            if (ctx) {
+                const computedStyle = window.getComputedStyle(inputRef.current);
+
+                ctx.font = computedStyle.font;
+
+                const textWidth = ctx.measureText(textUpToCaret).width;
+                const {top, left} = inputRef.current.getBoundingClientRect();
+
+                setSuggestionPosition({top: top, left: left + textWidth - inputRef.current.scrollLeft});
+                setSuggestionsVisible(true);
+
+                setSelectedSuggestionIndex(0);
+            }
+        } else {
+            setSuggestionsVisible(false);
+        }
+    }, [message, caret]);
+
+    const onSuggestionClick = (option: string) => {
+        const textUpToCaret = message.slice(0, caret);
+        const restText = message.slice(caret);
+        const words = textUpToCaret.split(" ");
+
+        words[words.length - 1] = option;
+
+        const newText = words.join(" ") + " " + restText;
+        const newCaret = words.join(" ").length + 1;
+
+        onMessageChange(newText);
+        setCaret(newCaret);
+        setSuggestionsVisible(false);
+    };
+
     return (
         <div className="chat-input-container">
             <input
@@ -54,13 +98,44 @@ export const ChatInput = withShadowStyles(({message, onMessageChange, onSend}: C
                 placeholder="Type your message..."
                 value={message}
                 onChange={(e) => onMessageChange(e.target.value)}
+                onPaste={(e) => {
+                    e.preventDefault();
+
+                    const pastedText = e.clipboardData.getData('text');
+                    const input = inputRef.current;
+
+                    if (!input) return;
+
+                    const start = input.selectionStart ?? 0;
+                    const end = input.selectionEnd ?? 0;
+                    const newMessage = message.slice(0, start) + pastedText + message.slice(end);
+
+                    onMessageChange(newMessage);
+                    setCaret(start + pastedText.length);
+                }}
                 onKeyDown={(e) => {
                     e.stopPropagation();
 
-                    if (e.key === "Enter") {
+                    const input = e.target as HTMLInputElement;
+                    const start = input.selectionStart ?? 0;
+                    const end = input.selectionEnd ?? 0;
+
+                    if (suggestionsVisible && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
                         e.preventDefault();
 
-                        onSend();
+                        if (e.key === "ArrowDown") {
+                            setSelectedSuggestionIndex((prev) => (prev + 1) % SUGGESTIONS.length);
+                        } else {
+                            setSelectedSuggestionIndex((prev) => (prev - 1 + SUGGESTIONS.length) % SUGGESTIONS.length);
+                        }
+
+                        return;
+                    }
+
+                    if (suggestionsVisible && e.key === "Enter") {
+                        e.preventDefault();
+
+                        onSuggestionClick(SUGGESTIONS[selectedSuggestionIndex]);
 
                         return;
                     }
@@ -75,17 +150,20 @@ export const ChatInput = withShadowStyles(({message, onMessageChange, onSend}: C
                         return;
                     }
 
-                    //From here on is custom behavior
+                    if (e.key === "Enter") {
+                        e.preventDefault();
+
+                        onSend();
+
+                        return;
+                    }
+
                     e.preventDefault();
 
-                    const input = e.target as HTMLInputElement;
-                    const start = input.selectionStart ?? 0;
-                    const end = input.selectionEnd ?? 0;
+                    let newCaret = start;
+                    let newMessage = message;
 
-                    if (e.key === "Backspace" || e.key === "Delete") {
-                        let newCaret = start;
-                        let newMessage = message;
-
+                    if (e.key === "Backspace") {
                         if (start !== end) {
                             newMessage = message.slice(0, start) + message.slice(end);
                         } else if (start > 0) {
@@ -97,10 +175,21 @@ export const ChatInput = withShadowStyles(({message, onMessageChange, onSend}: C
                         setCaret(newCaret);
 
                         return;
+                    } else if (e.key === "Delete") {
+                        if (start !== end) {
+                            newMessage = message.slice(0, start) + message.slice(end);
+                        } else {
+                            newMessage = message.slice(0, start) + message.slice(start + 1);
+                        }
+
+                        onMessageChange(newMessage);
+                        setCaret(start);
+
+                        return;
                     }
 
                     if (e.key.length === 1 && !e.metaKey) {
-                        const newMessage = message.slice(0, start) + e.key + message.slice(end);
+                        newMessage = message.slice(0, start) + e.key + message.slice(end);
 
                         onMessageChange(newMessage);
                         setCaret(start + 1);
@@ -108,6 +197,15 @@ export const ChatInput = withShadowStyles(({message, onMessageChange, onSend}: C
                 }}
             />
             <button onClick={onSend}>Send</button>
+            {suggestionsVisible && (
+                <ChatInputSuggestions
+                    suggestions={SUGGESTIONS}
+                    selectedIndex={selectedSuggestionIndex}
+                    position={suggestionPosition}
+                    onSuggestionClick={onSuggestionClick}
+                    onSuggestionHover={setSelectedSuggestionIndex}
+                />
+            )}
         </div>
     );
 }, styles);

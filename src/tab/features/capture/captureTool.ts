@@ -24,6 +24,8 @@ export function startCapture (onCaptureFinished: OnCaptureFinished): void {
     });
 
     document.body.appendChild(highlighter);
+    document.documentElement.style.cursor = "pointer";
+
 
     const mouseMoveHandler = (e: MouseEvent) => {
         const target = e.target as HTMLElement;
@@ -48,6 +50,8 @@ export function startCapture (onCaptureFinished: OnCaptureFinished): void {
 
         if (currentElement) {
             highlighter.remove();
+
+            document.documentElement.style.cursor = "";
 
             document.removeEventListener("mousemove", mouseMoveHandler);
             document.removeEventListener("click", mouseClickHandler, true);

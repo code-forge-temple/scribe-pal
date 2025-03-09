@@ -5,31 +5,38 @@
  *    See the LICENSE file in the project root for more information.    *
  ************************************************************************/
 
-import {useCallback, useRef} from "react";
-import {ChatBoxIds} from "../utils/types";
-import {usePersistentState} from "./usePersistentState";
+import {useCallback, useRef, useState} from "react";
 
-export function useAutoScroll ({tabId, chatBoxId}: ChatBoxIds): [
-    number,
-    (chatDiv: Element | null) => void
-] {
-    const [scrollTop, setScrollTop] = usePersistentState<number>("chatBoxScroll", 0, {tabId, chatBoxId});
+export function useAutoScroll () {
+    const [autoScroll, setAutoScroll] = useState(true);
     const timerRef = useRef<NodeJS.Timeout | null>(null);
     const delay = 200;
 
-    const updateScroll = useCallback((chatDiv: Element | null) => {
-        if (chatDiv) {
-            if (timerRef.current === null) {
-                chatDiv.scrollTop = chatDiv.scrollHeight;
+    const updateScroll = useCallback(
+        (chatDiv: Element | null) => {
+            if (chatDiv && autoScroll) {
+                if (timerRef.current === null) {
+                    chatDiv.scrollTop = chatDiv.scrollHeight;
 
-                setScrollTop(chatDiv.scrollTop);
-
-                timerRef.current = setTimeout(() => {
-                    timerRef.current = null;
-                }, delay);
+                    timerRef.current = setTimeout(() => {
+                        timerRef.current = null;
+                    }, delay);
+                }
             }
-        }
-    }, [setScrollTop]);
+        },
+        [autoScroll]
+    );
 
-    return [scrollTop, updateScroll];
+    const userInterruptAutoScroll = useCallback(
+        (event: Event) => {
+            const target = event.target as HTMLElement;
+            const atBottom = Math.abs(target.scrollHeight - (target.scrollTop + target.clientHeight)) < 5;
+
+            if (!atBottom) {
+                setAutoScroll(false);
+            }
+        },
+        []);
+
+    return {updateScroll, setAutoScroll, userInterruptAutoScroll};
 }

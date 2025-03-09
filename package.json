@@ -1,6 +1,6 @@
 {
     "name": "scribe-pal",
-    "version": "1.1.2",
+    "version": "1.2.0",
     "description": "ScribePal is an intelligent browser extension that leverages AI to empower your web experience.",
     "author": "Code Forge Temple",
     "type": "module",
@@ -11,13 +11,14 @@
         "dev:mozilla": "tsc --noEmit && webpack --mode development --env browser=mozilla --config webpack.config.mjs",
         "build:chrome": "tsc --noEmit && webpack --mode production --env browser=chrome --config webpack.config.mjs",
         "build:mozilla": "tsc --noEmit && webpack --mode production --env browser=mozilla --config webpack.config.mjs",
-        "lint": "eslint ."
+        "lint": "eslint .",
+        "dev": "npm run lint && concurrently \"npm run dev:chrome\" \"npm run dev:mozilla\"",
+        "build": "npm run lint && concurrently \"npm run build:chrome\" \"npm run build:mozilla\""
     },
     "dependencies": {
         "crypto-browserify": "^3.12.1",
         "ollama": "^0.5.12",
         "path-browserify": "^1.0.1",
-        "raw-loader": "^4.0.2",
         "react": "^19.0.0",
         "react-dom": "^19.0.0",
         "react-markdown": "^9.0.3",
@@ -25,6 +26,7 @@
         "remark-gfm": "^4.0.0"
     },
     "devDependencies": {
+        "raw-loader": "^4.0.2",
         "@babel/core": "^7.26.7",
         "@babel/preset-env": "^7.26.7",
         "@babel/preset-react": "^7.26.3",
@@ -36,6 +38,7 @@
         "@types/react-dom": "^19.0.3",
         "@types/react-syntax-highlighter": "^15.5.13",
         "babel-loader": "^9.2.1",
+        "concurrently": "^9.1.2",
         "copy-webpack-plugin": "^12.0.2",
         "css-loader": "^7.1.2",
         "eslint": "^9.21.0",
