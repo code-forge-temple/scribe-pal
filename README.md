@@ -209,9 +209,14 @@ To install the the compiled extension, for:
    - The AI response is rendered below the input as markdown.
    - You can manage (delete or refresh) available Ollama models using the available controls in the model select dropdown.
 
-A short video tutorial on how to use the plugin:
+Some short video tutorials on how to use the plugin:
+1. Release 1.0.x:
 
 [![IR7Jufc0zxo](https://img.youtube.com/vi/IR7Jufc0zxo/0.jpg)](https://www.youtube.com/watch?v=IR7Jufc0zxo)
+
+2. Release 1.2.x:
+
+[![m7pw6q5qgY0](https://img.youtube.com/vi/m7pw6q5qgY0/0.jpg)](https://www.youtube.com/watch?v=m7pw6q5qgY0)
 
 ## License
 This project is licensed under the GNU General Public License v3.0. See the [LICENSE](LICENSE) file for more details.
