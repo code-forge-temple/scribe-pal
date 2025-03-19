@@ -11,7 +11,7 @@ import {ChatBox} from "../../../components/ChatBox";
 import {ShadowContext}from "../../../contexts/ShadowContext";
 import {App} from "../../../components/App";
 
-export function showChat (tabId: number, chatBoxId: string): void {
+export function showChat (tabId: number, chatBoxId: string, coordsOffset: number): void {
 
     const host = document.createElement("div");
     const shadow = host.attachShadow({mode: "closed"});
@@ -36,7 +36,7 @@ export function showChat (tabId: number, chatBoxId: string): void {
     root.render(
         <ShadowContext.Provider value={shadow}>
             <App>
-                <ChatBox chatBoxId={chatBoxId} tabId={tabId} onRemove={handleRemove} />
+                <ChatBox chatBoxId={chatBoxId} tabId={tabId} onRemove={handleRemove} coordsOffset={coordsOffset} />
             </App>
         </ShadowContext.Provider>
     );

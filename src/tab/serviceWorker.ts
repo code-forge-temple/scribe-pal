@@ -208,33 +208,33 @@ const actionShowChat = async () => {
 
     if (!tabId) return;
 
-    if (await isScriptInjected(tabId)) {
-        await showChat(tabId, chatBoxId);
-    } else {
+    if (!(await isScriptInjected(tabId))) {
         await polyfillScriptingExecuteScript({
             target: {tabId},
             files: ["injectedScript.js"],
         });
-
-        await showChat(tabId, chatBoxId);
     }
+
+    await showChat(tabId, chatBoxId);
 }
 
 const showChat = async (tabId: number, chatBoxId: string) => {
     const chatIsShown = await isChatShown(tabId, chatBoxId);
+    const tabStorage = await getTabStorage(tabId);
+    const chatBoxesCount = Object.keys(tabStorage.chatBoxes).length;
 
     if (!chatIsShown) {
         await polyfillScriptingExecuteScript({
             target: {tabId},
-            func: (extensionName: string, tabId: number, chatBoxId: string) => {
+            func: (extensionName: string, tabId: number, chatBoxId: string, chatBoxesCount: number) => {
                 const extensionNamespace = (window as any)[extensionName];
 
-                extensionNamespace.showChat(tabId, chatBoxId);
+                extensionNamespace.showChat(tabId, chatBoxId, chatBoxesCount);
 
                 extensionNamespace.shownChatBoxes[chatBoxId] = true;
 
             },
-            args: [EXTENSION_NAME, tabId, chatBoxId],
+            args: [EXTENSION_NAME, tabId, chatBoxId, chatBoxesCount],
         });
     }
 }

@@ -45,12 +45,20 @@ const ROLE = {
     ASSISTANT: "assistant"
 } as const;
 
-type ChatBoxProps = ChatBoxIds & { onRemove: () => void };
+type ChatBoxProps = ChatBoxIds & {
+    onRemove: () => void;
+    coordsOffset: number;
+};
 
-export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove}: ChatBoxProps) => {
+export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffset}: ChatBoxProps) => {
     const boxRef = useRef<HTMLDivElement>(null);
     const [isVisible, setIsVisible] = useState(false);
-    const [position, setPosition, handleDrag] = useDraggablePosition({tabId, chatBoxId}, {left: "calc(100% - 600px)", top: "210px"});
+    const [position, setPosition, handleDrag] = useDraggablePosition(
+        {tabId, chatBoxId},
+        {
+            left:  `calc(100% - 600px - ${30 * coordsOffset}px)`,
+            top: `calc(210px + ${30 * coordsOffset}px)`
+        });
     const [message, setMessage] = usePersistentState<string>("chatBoxMessage", "", {tabId, chatBoxId});
     const {chatLog, setChatLog} = useChatLog({tabId, chatBoxId});
     const [selectedModel, setSelectedModel] = usePersistentState<string>("chatBoxSelectedModel", "", {tabId, chatBoxId});

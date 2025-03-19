@@ -1,6 +1,6 @@
 {
     "name": "scribe-pal",
-    "version": "1.2.0",
+    "version": "1.3.0",
     "description": "ScribePal is an intelligent browser extension that leverages AI to empower your web experience.",
     "author": "Code Forge Temple",
     "type": "module",
