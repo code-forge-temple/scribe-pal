@@ -33,3 +33,57 @@ export const runtimeConnect = <D extends keyof MessageData>({name, data, onMessa
         }
     });
 }
+
+export const getLanguageForExtension = (extension?: string): string => {
+    switch (extension) {
+        case "txt":
+            return "text";
+        case "md":
+            return "markdown";
+        case "html":
+            return "html";
+        case "css":
+            return "css";
+        case "scss":
+            return "scss";
+        case "js":
+            return "javascript";
+        case "ts":
+            return "typescript";
+        case "tsx":
+            return "typescript";
+        case "json":
+            return "json";
+        case "xml":
+            return "xml";
+        case "csv":
+            return "csv";
+        case "yaml":
+        case "yml":
+            return "yaml";
+        case "ini":
+            return "ini";
+        case "log":
+            return "text";
+        case "sh":
+            return "bash";
+        case "sql":
+            return "sql";
+        case "py":
+            return "python";
+        case "java":
+            return "java";
+        case "c":
+            return "c";
+        case "cpp":
+            return "cpp";
+        case "h":
+            return "cpp";
+        case "bat":
+            return "batch";
+        case "env":
+            return "text";
+        default:
+            return "text";
+    }
+};

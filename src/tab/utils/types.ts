@@ -103,3 +103,8 @@ export type RuntimeConnectParams<T extends keyof MessageData> = {
     onMessage: (response: MessageResponse[T]) => void;
     onDisconnect?: () => void;
 };
+
+export type FileData = {
+    name: string;
+    content: string;
+}

@@ -7,7 +7,7 @@
 
 import React, {useRef, useEffect, useState, useCallback} from "react";
 import {usePersistentState, useDraggablePosition} from "../../hooks";
-import {ChatBoxIds, Model} from "../../utils/types";
+import {ChatBoxIds, FileData, Model} from "../../utils/types";
 import {EXTENSION_NAME, MESSAGE_TYPES} from "../../../common/constants";
 import {ChatInput} from "./components/ChatInput";
 import {ChatLog} from "./components/ChatLog";
@@ -18,10 +18,11 @@ import {useKeepInViewport} from "../../hooks/useKeepInViewport";
 import {startCapture} from "../../features/capture/captureTool";
 import {RichTextModal} from "./components/RichTextModal";
 import {ReferencesList} from "./components/ReferencesList";
-import {prefixChatBoxId} from "../../utils/utils";
+import {getLanguageForExtension, prefixChatBoxId} from "../../utils/utils";
 import PromptSvg from '../../assets/eye-solid.svg';
 import CaptureTxtSvg from '../../assets/menu-scale.svg';
 import CaptureImgSvg from '../../assets/media-image.svg';
+import AttachSvg from '../../assets/attachment.svg';
 import {useTheme} from "../../hooks/useTheme";
 import {polyfillRuntimeSendMessage, polyfillGetTabStorage, polyfillRuntimeConnect, polyfillSetTabStorage} from "../../privilegedAPIs/privilegedAPIs";
 import {browser} from "../../../common/browser";
@@ -29,12 +30,32 @@ import styles from "./ChatBox.scss?inline";
 import {withShadowStyles} from "../../utils/withShadowStyles";
 import {startCaptureImage} from "../../features/capture/captureImageTool";
 import {ImageModal} from "./components/ImageModal";
-import {CAPTURED_IMAGE_TAG, CAPTURED_TAG} from "../../utils/constants";
+import {ATTACHED_TAG, CAPTURED_IMAGE_TAG, CAPTURED_TAG} from "../../utils/constants";
+import {FilesModal} from "./components/FilesModal";
 
-const formatMessage = (message: string, capturedText: string, capturedImage: string) => {
-    let newMessage = message.replace(CAPTURED_IMAGE_TAG, capturedImage ? (`\n![Captured Image](${capturedImage})\n`) : "");
+const formatMessage = (message: string, {capturedText, capturedImage, attachedFiles}: {capturedText: string, capturedImage: string, attachedFiles: FileData[]}) => {
+    let newMessage = message.replace(
+        CAPTURED_IMAGE_TAG,
+        capturedImage ? (`\n![Captured Image](${capturedImage})\n`) : ""
+    );
 
-    newMessage = newMessage.replace(CAPTURED_TAG, capturedText ? ("\n```text\n" + capturedText + "\n```\n") : "");
+    let attachedFilesContents: string|undefined = "";
+
+    for(const attachedFile of attachedFiles) {
+        const fileExtension = attachedFile.name.split(".").pop()?.toLowerCase();
+        const language = getLanguageForExtension(fileExtension);
+
+        attachedFilesContents += `\n\`\`\`${language}\n${attachedFile.content}\n\`\`\`\n`;
+    }
+
+    if(attachedFilesContents) {
+        newMessage = newMessage.replace(ATTACHED_TAG, attachedFilesContents);
+    }
+
+    newMessage = newMessage.replace(
+        CAPTURED_TAG,
+        capturedText ? ("\n```text\n" + capturedText + "\n```\n") : ""
+    );
 
     return newMessage;
 }
@@ -70,6 +91,10 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
     const [capturedImageModalVisible, setCapturedImageModalVisible] = useState<boolean>(false);
     const [promptMessage, setPromptMessage] = usePersistentState<string>("promptMessage", "", {tabId, chatBoxId});
     const [promptModalVisible, setPromptModalVisible] = useState<boolean>(false);
+
+    const [attachedFiles, setAttachedFiles] = usePersistentState<FileData[]>("attachedFiles", [], {tabId, chatBoxId});
+    const [attachedFilesModalVisible, setAttachedFilesModalVisible] = useState<boolean>(false);
+
     const updateTheme = useTheme(boxRef);
 
     const fetchModels = useCallback(() => {
@@ -157,7 +182,7 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
     const handleSend = async () => {
         if (message.trim() === "") return;
 
-        const formattedMessage = formatMessage(message, capturedText, capturedImage);
+        const formattedMessage = formatMessage(message, {capturedText, capturedImage, attachedFiles});
 
         const conversationHistory = chatLog
             .filter((msg) => !msg.loading)
@@ -264,6 +289,38 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
         );
     };
 
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const files = event.target.files;
+
+        if (!files) return;
+
+        if (files.length > 0) {
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const reader = new FileReader();
+
+                reader.onload = (e) => {
+                    const fileContent = e.target?.result as string;
+
+                    const fileData: FileData = {
+                        name: file.name,
+                        content: fileContent,
+                    };
+
+                    setAttachedFiles((prevFiles) => [...prevFiles, fileData]);
+                };
+
+                reader.readAsText(file);
+            }
+
+            if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+            }
+        }
+    };
+
     return (
         <div
             id={prefixChatBoxId(chatBoxId)}
@@ -302,6 +359,14 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
                         }
                         }
                     />
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        accept=".txt,.md,.html,.css,.scss,.js,.ts,.tsx,.json,.xml,.csv,.yaml,.yml,.ini,.log,.sh,.sql,.py,.java,.c,.cpp,.h,.bat,.env"
+                        style={{display: "none"}}
+                        onChange={handleFileChange}
+                    />
                     <Tools actions={[
                         {
                             call: () => {
@@ -333,12 +398,21 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
                         },
                         {
                             call: () => {
+                                if (fileInputRef.current) {
+                                    fileInputRef.current.click();
+                                }
+                            },
+                            label: <>Attach <AttachSvg className={attachedFiles.length ? "icon" : ""} /></>,
+                            tooltip: "attach files",
+                        },
+                        {
+                            call: () => {
                                 setPromptModalVisible(true);
                             },
                             label: "Prompt",
                             tooltip: "prompt",
                             icon: promptMessage ? <PromptSvg className="icon" /> : undefined
-                        }
+                        },
                     ]} />
                     <ReferencesList list={[
                         ... (capturedText ? [
@@ -365,6 +439,18 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
                                 }
                             }
                         ] : []),
+                        ... (attachedFiles.length ? [
+                            {
+                                text: ATTACHED_TAG,
+                                tooltip: "Click to view attached files",
+                                onClick: () => {
+                                    setAttachedFilesModalVisible(true);
+                                },
+                                onClose: () => {
+                                    setAttachedFiles([]);
+                                }
+                            }
+                        ] : []),
 
                     ]} />
                     <RichTextModal
@@ -372,6 +458,11 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
                         richText={capturedText}
                         closeButtonName="Save"
                         onUpdate={(txt:string) => { setCapturedText(txt); setCapturedModalVisible(false); }} />
+                    <FilesModal
+                        visible={attachedFilesModalVisible}
+                        files={attachedFiles}
+                        closeButtonName="Save"
+                        onUpdate={(files: FileData[]) => { setAttachedFiles(files); setAttachedFilesModalVisible(false); }} />
                     <ImageModal
                         visible={capturedImageModalVisible}
                         imageBase64={capturedImage}

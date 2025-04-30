@@ -1,0 +1,94 @@
+@use "../../../../../common/styles/variables.scss" as commonVars;
+@use "../../../../styles/mixins.scss" as mixins;
+@use "../../../../styles/variables.scss" as vars;
+
+.attached-files-modal {
+    @include mixins.modal-window;
+
+    .contents {
+        display: flex;
+        height: 300px;
+
+        .list-group {
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            padding: 0;
+            margin: 0;
+            height: auto;
+            overflow-y: auto;
+            margin-right: 3px;
+        
+            .list-group-item {
+                position: relative;
+                display: flex;
+                flex-direction: row;
+                flex-wrap: nowrap;
+                justify-content: space-between;
+                align-items: center;
+                padding: 5px;
+                margin-right: 5px;
+                border-radius: vars.$default-border-radius;
+
+                .file-name {
+                    display: inline-block;
+                    max-width: 230px;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    vertical-align: middle;
+                }
+
+                .delete-file {
+                    color: vars.$default-highlight-color;
+                    display: block;
+                    height: 22px;
+                    width: auto;
+                    margin-right: 5px;
+                    cursor: pointer;
+                }
+
+                .delete-file:hover {
+                    color: white;
+                }
+            }
+        
+            .list-group-item:hover {
+                cursor: pointer;
+                background-color: #0d6efd;
+                color: white;
+            }
+        }
+
+        .textarea {
+            @include mixins.main-textarea;
+            width: 600px;
+            height: auto;
+            white-space: pre-wrap;
+        }
+    }
+
+    .modal-buttons {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 10px;
+
+        button {
+            @include mixins.button-style;
+            margin-left: 10px;
+        }
+    }
+}
+
+.dark-theme {
+    .attached-files-modal {
+        background: commonVars.$dark-theme-primary-color;
+        border-color: commonVars.$dark-theme-primary-color;
+
+        .textarea{
+            background: commonVars.$dark-theme-secondary-color;
+            color: white;
+            border-color: commonVars.$dark-theme-secondary-color;
+        }
+    }
+}

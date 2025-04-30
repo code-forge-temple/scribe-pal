@@ -1,11 +1,14 @@
-    .tag {
+@use "../../../../../../styles/variables.scss" as vars;
+
+
+.tag {
         display: inline-flex;
         align-items: center;
         padding: 0.3em 0.6em;
         font-size: 90%;
         font-weight: 500;
         color: #fff;
-        background-color: #551a8b;
+        background-color: vars.$default-highlight-color;
         border-radius: 10rem;
         cursor: pointer;
         user-select: none;

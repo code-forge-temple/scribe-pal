@@ -1,4 +1,6 @@
 @use "../../../../../common/styles/variables.scss" as commonVars;
+@use "../../../../styles/variables.scss" as vars;
+
 
 .chat-log {
     background: white;
@@ -26,7 +28,7 @@
 
             .delete-message,
             .copy-message {
-                color: #551a8b;
+                color: vars.$default-highlight-color;
             }
 
             svg {
@@ -65,7 +67,7 @@
         }
 
         &:visited {
-            color: #551a8b;
+            color: vars.$default-highlight-color;
         }
 
         &:active {
@@ -76,7 +78,7 @@
 
 .scroll-to-end {
     border: none;
-    border-radius: 4px;
+    border-radius: vars.$default-border-radius;
     cursor: pointer;
     color: #fff;
     text-align: center;
