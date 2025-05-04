@@ -43,6 +43,7 @@ It is compatible with all Chromium and Gecko-based browsers: Chrome, Vivaldi, Op
 - **Model Management:** Select, refresh, download, and delete models.
 - **Advanced Capture Tools:** Options for capturing both text and images are available. Captured content is inserted directly into your chat using special tags (`@captured-text` for text and `@captured-image` for images).
 - **Prompt Customization:** Adjust and customize prompts to instruct the AI model on how to generate responses.
+- **File Attachments:** Upload files to the chat interface and reference them in discussions using the `@attached-files` tag.
 
 ## Prerequisites
 
@@ -203,6 +204,7 @@ To install the the compiled extension, for:
    - A responsive, draggable chat box will open on the active webpage.
    - Use the chat interface to send messages to the Ollama AI service, review conversation history, and manage models.
    - Additional features include capturing selected HTML content (that can be referenced in the discussion with `@captured-text` tag), capturing an image of an area on the page (that can be referenced in the discussion with `@captured-image` tag) for VISION LLMs, and customizing prompts (to instruct the loaded model on how to answer).
+   - You can also attach files to the chat using the **Attach Files** button. Uploaded files can be referenced in the discussion using the `@attached-files` tag.
 
 4. **Interacting with the Chat:**
    - Type your query in the chat input and press Enter or click the `Send` button.

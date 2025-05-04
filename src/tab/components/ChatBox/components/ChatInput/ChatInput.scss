@@ -5,13 +5,17 @@
     display: flex;
     margin: 10px 0 0 0;
 
-    input[type="text"] {
+    textarea {
         flex-grow: 1;
         padding: 5px;
         border: 1px solid #ccc;
         border-radius: 4px 0 0 4px;
         background: white;
         color: black;
+        white-space: nowrap;
+        overflow: hidden;
+        resize: none;
+        font-family: monospace;
     }
 
     button {
@@ -23,7 +27,7 @@
 
 .dark-theme {
     .chat-input-container {
-        input {
+        textarea {
             background: commonVars.$dark-theme-secondary-color;
             border-color: commonVars.$dark-theme-secondary-color;
             color: white;

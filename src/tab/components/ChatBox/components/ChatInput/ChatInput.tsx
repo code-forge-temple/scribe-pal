@@ -18,7 +18,7 @@ type ChatInputProps = {
 }
 
 export const ChatInput = withShadowStyles(({message, onMessageChange, onSend}: ChatInputProps) => {
-    const inputRef = useRef<HTMLInputElement>(null);
+    const inputRef = useRef<HTMLTextAreaElement>(null);
     const [caret, setCaret] = useState<number>(0);
     const [suggestionsVisible, setSuggestionsVisible] = useState(false);
     const [suggestionPosition, setSuggestionPosition] = useState({top: 0, left: 0});
@@ -43,7 +43,7 @@ export const ChatInput = withShadowStyles(({message, onMessageChange, onSend}: C
                 const visibleWidth = inputRef.current.clientWidth;
 
                 if (caretPixelPos > scrollLeft + visibleWidth) {
-                    inputRef.current.scrollLeft = caretPixelPos - visibleWidth + 15;
+                    inputRef.current.scrollLeft = caretPixelPos - visibleWidth + ctx.measureText('M').width;
                 }
             }
         }
@@ -92,16 +92,18 @@ export const ChatInput = withShadowStyles(({message, onMessageChange, onSend}: C
 
     return (
         <div className="chat-input-container">
-            <input
+            <textarea
                 ref={inputRef}
-                type="text"
+                rows={1}
                 placeholder="Type your message..."
                 value={message}
-                onChange={(e) => onMessageChange(e.target.value)}
                 onPaste={(e) => {
                     e.preventDefault();
 
-                    const pastedText = e.clipboardData.getData('text');
+                    const pastedText = e.clipboardData.getData('text')
+                        .replace(/\r\n/g, ' ')
+                        .replace(/\n/g, ' ')
+                        .replace(/\t/g, ' ');
                     const input = inputRef.current;
 
                     if (!input) return;
