@@ -1,6 +1,6 @@
 {
     "name": "scribe-pal",
-    "version": "1.4.1",
+    "version": "1.4.2",
     "description": "ScribePal is an intelligent browser extension that leverages AI to empower your web experience.",
     "author": "Code Forge Temple",
     "type": "module",
@@ -26,11 +26,10 @@
         "remark-gfm": "^4.0.0"
     },
     "devDependencies": {
-        "raw-loader": "^4.0.2",
-        "@babel/core": "^7.26.7",
-        "@babel/preset-env": "^7.26.7",
-        "@babel/preset-react": "^7.26.3",
-        "@babel/preset-typescript": "^7.26.0",
+        "@babel/core": "^7.27.1",
+        "@babel/preset-env": "^7.27.2",
+        "@babel/preset-react": "^7.27.1",
+        "@babel/preset-typescript": "^7.27.1",
         "@eslint/js": "^9.21.0",
         "@svgr/webpack": "^8.1.0",
         "@types/chrome": "^0.0.304",
@@ -45,6 +44,7 @@
         "eslint-plugin-react-hooks": "^5.1.0",
         "eslint-plugin-react-refresh": "^0.4.19",
         "globals": "^16.0.0",
+        "raw-loader": "^4.0.2",
         "sass": "^1.84.0",
         "sass-loader": "^16.0.4",
         "style-loader": "^4.0.0",
