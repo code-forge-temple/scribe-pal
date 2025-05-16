@@ -23,5 +23,6 @@
     "include": [
         "src",
         "libs/opencv/opencv.js"
-    ]
+    ],
+    "exclude": ["node_modules", "dist"]
 }

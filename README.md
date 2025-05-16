@@ -1,5 +1,7 @@
 # ScribePal
 
+> ⭐️ If you like this plugin, please consider [starring the repository](https://github.com/code-forge-temple/scribe-pal) on GitHub!
+
 ScribePal is an Open Source intelligent browser extension that leverages AI to empower your web experience by providing contextual insights, efficient content summarization, and seamless interaction while you browse.
 
 ## Table of Contents

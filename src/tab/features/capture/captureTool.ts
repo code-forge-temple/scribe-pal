@@ -56,7 +56,7 @@ export function startCapture (onCaptureFinished: OnCaptureFinished): void {
             document.removeEventListener("mousemove", mouseMoveHandler);
             document.removeEventListener("click", mouseClickHandler, true);
 
-            const capturedText = currentElement.innerText.trim();
+            const capturedText = currentElement.innerText?.trim();
 
             onCaptureFinished(capturedText);
         }
