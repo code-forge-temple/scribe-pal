@@ -43,10 +43,11 @@ browser.runtime.onMessage.addListener((
             break;
 
         case MESSAGE_TYPES.ACTION_UPDATE_THEME:
+        case MESSAGE_TYPES.ACTION_DEFAULT_LLM_UPDATED:
             (async () => {
                 const [{id: tabId}] = await browser.tabs.query({currentWindow: true, active: true});
 
-                browser.tabs.sendMessage(tabId, {type: MESSAGE_TYPES.ACTION_UPDATE_THEME});
+                browser.tabs.sendMessage(tabId, {type: request.type});
             })();
 
             break;

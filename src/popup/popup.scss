@@ -54,7 +54,7 @@ $menu-item-border-bottom: 1px;
     transform: rotate(180deg);
 }
 
-$extra-settings-items: 1; // TODO: if we add more settings, we need to update this value
+$extra-settings-items: 2; // TODO: if we add more settings, we need to update this value
 
 .extra-settings {
     overflow: hidden;
@@ -84,11 +84,21 @@ $extra-settings-items: 1; // TODO: if we add more settings, we need to update th
         min-width: 110px;
     }
 
-    input[type="text"] {
+    input[type="text"], select {
         flex-grow: 1;
         padding: 5px;
         border: 1px solid #ccc;
         border-radius: 4px 0 0 4px;
+    }
+
+    select {
+        cursor: pointer;
+        width: auto;
+        padding: 4px 0px 4px 0px;
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     button {
@@ -118,7 +128,7 @@ $extra-settings-items: 1; // TODO: if we add more settings, we need to update th
     .input-with-button {
         border-color: vars.$dark-theme-secondary-color;
 
-        input {
+        input, select {
             background: vars.$dark-theme-secondary-color;
             color: white;
             border-color: vars.$dark-theme-secondary-color !important;

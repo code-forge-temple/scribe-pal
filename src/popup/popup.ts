@@ -7,6 +7,7 @@
 
 import {browser} from "../common/browser";
 import {MESSAGE_TYPES} from "../common/constants";
+import {Model} from "../tab/utils/types";
 import "./popup.scss";
 
 
@@ -25,8 +26,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const extraSettings = document.querySelector(".extra-settings");
 
     if (toggleBtn && extraSettings) {
-        toggleBtn.addEventListener("click", () => {
-            extraSettings.classList.toggle("collapsed");
+        toggleBtn.addEventListener("click", async () => {
+            const extraSettingsCollapsed = extraSettings.classList.toggle("collapsed");
             toggleBtn.classList.toggle("rotated");
 
             /* For Firefox */
@@ -36,6 +37,40 @@ document.addEventListener("DOMContentLoaded", () => {
                 document.documentElement.style.height = `${document.body.scrollHeight}px`;
             }, 500);
             /***************/
+
+            if(!extraSettingsCollapsed) {
+                const response = await browser.runtime.sendMessage({type: MESSAGE_TYPES.FETCH_MODELS});
+
+                if (response && response.models) {
+                    const {defaultLlm} = await browser.storage.local.get("defaultLlm");
+                    const defaultLlmSelect = document.getElementById("default-llm") as HTMLSelectElement;
+                    const models: Model[] = response.models;
+                    const defaultLlmOptions = models.map((model: Model) => {
+                        const option = document.createElement("option");
+
+                        option.value = model.name;
+                        option.textContent = model.name;
+
+                        if (defaultLlm && model.name === defaultLlm) {
+                            option.selected = true;
+                        }
+
+                        return option;
+                    });
+                    const defaultLlmLabel = document.createElement("option");
+
+                    defaultLlmLabel.value = "";
+                    defaultLlmLabel.textContent = "Select a model...";
+
+                    if(!defaultLlm) {
+                        defaultLlmLabel.selected = true;
+                    }
+
+                    defaultLlmSelect.innerHTML = "";
+                    defaultLlmSelect.append(defaultLlmLabel);
+                    defaultLlmSelect.append(...defaultLlmOptions);
+                }
+            }
         });
     }
 
@@ -125,6 +160,18 @@ document.getElementById("showChat")?.addEventListener("click", () => {
     browser.runtime.sendMessage({
         type: MESSAGE_TYPES.ACTION_SHOW_CHAT,
         message: "showChat",
+    });
+});
+
+document.getElementById("save-default-llm")?.addEventListener("click", () => {
+    const selectedLlm = (document.getElementById("default-llm") as HTMLSelectElement).value;
+
+    browser.storage.local.set({defaultLlm: selectedLlm}, () => {
+        showNotification("Saved", "Default LLM saved!");
+
+        browser.runtime.sendMessage({
+            type: MESSAGE_TYPES.ACTION_DEFAULT_LLM_UPDATED
+        });
     });
 });
 

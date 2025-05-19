@@ -5,15 +5,16 @@
  *    See the LICENSE file in the project root for more information.    *
  ************************************************************************/
 
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {Model} from '../../../../utils/types';
 import {EXTENSION_NAME, MESSAGE_TYPES} from '../../../../../common/constants';
 import {RichTextModal} from '../RichTextModal';
 import DeleteModelSvg from '../../../../assets/bin-full.svg';
 import {Tooltip} from '../Tooltip/Tooltip';
-import {polyfillRuntimeConnect} from '../../../../privilegedAPIs/privilegedAPIs';
+import {polyfillRuntimeConnect, polyfillStorageLocalGet} from '../../../../privilegedAPIs/privilegedAPIs';
 import styles from "./ChatHeader.scss?inline";
 import {withShadowStyles} from '../../../../utils/withShadowStyles';
+import {browser} from '../../../../../common/browser';
 
 
 type ChatHeaderProps = {
@@ -83,6 +84,32 @@ export const ChatHeader = withShadowStyles(({
         });
     }
 
+    useEffect(() => {
+        const updateDefaultLlm = () => {
+            if (!selectedModel) {
+                polyfillStorageLocalGet("defaultLlm").then((result: { defaultLlm: string }) => {
+                    if (result.defaultLlm) {
+                        onModelSelect(result.defaultLlm);
+                    }
+                });
+            }
+        };
+
+        const listener = (message: any) => {
+            if (message.type === MESSAGE_TYPES.ACTION_DEFAULT_LLM_UPDATED) {
+                updateDefaultLlm();
+            }
+        };
+
+        browser.runtime.onMessage.addListener(listener);
+
+        updateDefaultLlm();
+
+        return () => {
+            browser.runtime.onMessage.removeListener(listener);
+        };
+    }, [onModelSelect, selectedModel]);
+
     return (
         <>
             <div className="chat-box-header">
@@ -112,7 +139,7 @@ export const ChatHeader = withShadowStyles(({
                         }}
                         onMouseDown={(e) => e.stopPropagation()}
                     >
-                        <option value="">Select a model...</option>
+                        <option value="" disabled>Select a model...</option>
                         {models.map((model: Model, index: number) => (
                             <option key={index} value={model.name}>
                                 {model.name}

@@ -19,4 +19,5 @@ export const MESSAGE_TYPES = {
     DELETE_MODEL: "deleteModel",
     TOGGLE_CHAT_VISIBILITY: "toggleChatVisibility",
     CAPTURE_VISIBLE_TAB: "captureVisibleTab",
+    ACTION_DEFAULT_LLM_UPDATED: "actionDefaultLlmUpdated",
 } as const;
