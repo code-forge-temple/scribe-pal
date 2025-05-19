@@ -87,9 +87,9 @@ export const ChatHeader = withShadowStyles(({
     useEffect(() => {
         const updateDefaultLlm = () => {
             if (!selectedModel) {
-                polyfillStorageLocalGet("defaultLlm").then((result: { defaultLlm: string }) => {
-                    if (result.defaultLlm) {
-                        onModelSelect(result.defaultLlm);
+                polyfillStorageLocalGet("defaultLlm").then(({defaultLlm}: { defaultLlm: string }) => {
+                    if (defaultLlm && models.length && models.some(model => model.name === defaultLlm)) {
+                        onModelSelect(defaultLlm);
                     }
                 });
             }
@@ -108,7 +108,7 @@ export const ChatHeader = withShadowStyles(({
         return () => {
             browser.runtime.onMessage.removeListener(listener);
         };
-    }, [onModelSelect, selectedModel]);
+    }, [models, onModelSelect, selectedModel]);
 
     return (
         <>
