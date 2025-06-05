@@ -56,7 +56,15 @@ export function startCapture (onCaptureFinished: OnCaptureFinished): void {
             document.removeEventListener("mousemove", mouseMoveHandler);
             document.removeEventListener("click", mouseClickHandler, true);
 
-            const capturedText = currentElement.innerText?.trim();
+            let capturedText = '';
+
+            if (currentElement instanceof HTMLInputElement ||
+            currentElement instanceof HTMLTextAreaElement ||
+            currentElement instanceof HTMLSelectElement) {
+                capturedText = currentElement.value.trim() || '';
+            } else {
+                capturedText = currentElement.innerText?.trim() || '';
+            }
 
             onCaptureFinished(capturedText);
         }
