@@ -1,30 +1,34 @@
 # ScribePal
 
-> ⭐️ If you like this plugin, please consider [starring the repository](https://github.com/code-forge-temple/scribe-pal) on GitHub!
-
 ScribePal is an Open Source intelligent browser extension that leverages AI to empower your web experience by providing contextual insights, efficient content summarization, and seamless interaction while you browse.
+
+> ⭐️ **Love this project?** Please consider [starring the repository](https://github.com/code-forge-temple/scribe-pal) on GitHub and [supporting development](https://github.com/sponsors/code-forge-temple) to help me continue building amazing features!  
 
 ## Table of Contents
 
 <!-- TOC -->
 
-- [Table of Contents](#table-of-contents)
-- [Privacy](#privacy)
-- [Compatibility](#compatibility)
-- [Features](#features)
-- [Prerequisites](#prerequisites)
-    - [Linux](#linux)
-    - [Windows](#windows)
-- [Development](#development)
-    - [Installation](#installation)
-    - [Alternative Installation Options](#alternative-installation-options)
-    - [1. Install via Browser Stores](#1-install-via-browser-stores)
-    - [2. Download from Releases](#2-download-from-releases)
-    - [Building](#building)
-    - [Linting](#linting)
-    - [Installing in browser](#installing-in-browser)
-- [Usage](#usage)
-- [License](#license)
+- [ScribePal](#scribepal)
+    - [Table of Contents](#table-of-contents)
+    - [Privacy](#privacy)
+    - [Compatibility](#compatibility)
+    - [Features](#features)
+    - [Prerequisites](#prerequisites)
+        - [Linux](#linux)
+        - [Windows](#windows)
+    - [Development](#development)
+        - [Installation](#installation)
+        - [Alternative Installation Options](#alternative-installation-options)
+        - [Install via Browser Stores](#install-via-browser-stores)
+        - [Download from Releases](#download-from-releases)
+        - [Building](#building)
+            - [I. For development](#i-for-development)
+            - [II. For production](#ii-for-production)
+        - [Linting](#linting)
+        - [Installing in browser](#installing-in-browser)
+    - [Usage](#usage)
+    - [License](#license)
+    - [✨ My Other Projects](#-my-other-projects)
 
 <!-- /TOC -->
 
@@ -224,3 +228,13 @@ Some short video tutorials on how to use the plugin:
 
 ## License
 This project is licensed under the GNU General Public License v3.0. See the [LICENSE](LICENSE) file for more details.
+
+## ✨ My Other Projects
+
+✦ [**Agentic Signal**](https://github.com/code-forge-temple/agentic-signal) – Visual AI agent workflow automation platform with local LLM integration - build intelligent workflows using drag-and-drop interface, no cloud dependencies required.  
+
+✦ [**Local LLM NPC**](https://github.com/code-forge-temple/local-llm-npc) An interactive educational game built for the Google Gemma 3n Impact Challenge.  
+
+✦ [**Circuit Sketcher - Obsidian Plugin**](https://github.com/code-forge-temple/circuit-sketcher-obsidian-plugin) - A plugin for Obsidian to draw circuits on a canvas.  
+
+✦ [**Circuit Sketcher - Web App**](https://github.com/code-forge-temple/circuit-sketcher-app) - A web application to draw circuits on a canvas, based on circuit-sketcher-core.  
