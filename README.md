@@ -15,17 +15,20 @@ ScribePal is an Open Source intelligent browser extension that leverages AI to e
     - [Features](#features)
     - [Prerequisites](#prerequisites)
         - [Linux](#linux)
+        - [macOS](#macos)
         - [Windows](#windows)
     - [Development](#development)
+        - [Prerequisites](#prerequisites)
         - [Installation](#installation)
-        - [Alternative Installation Options](#alternative-installation-options)
-        - [Install via Browser Stores](#install-via-browser-stores)
-        - [Download from Releases](#download-from-releases)
         - [Building](#building)
             - [I. For development](#i-for-development)
             - [II. For production](#ii-for-production)
         - [Linting](#linting)
-        - [Installing in browser](#installing-in-browser)
+        - [Load in browser](#load-in-browser)
+    - [Alternative Installation Options](#alternative-installation-options)
+        - [A. Install via Browser Stores](#a-install-via-browser-stores)
+        - [B. Download from Releases](#b-download-from-releases)
+            - [Installing in the browser](#installing-in-the-browser)
     - [Usage](#usage)
     - [License](#license)
     - [✨ My Other Projects](#-my-other-projects)
@@ -34,7 +37,7 @@ ScribePal is an Open Source intelligent browser extension that leverages AI to e
 
 ## Privacy
 
-ScribePal works with local Ollama models, ensuring that all AI processing and messaging is conducted within your local network. Your private data remains on your system and is never transmitted to external servers. This design provides you with full control over your information and guarantees that nobody outside your network has access to your data.
+ScribePal works with [local Ollama](#prerequisites) models, ensuring that all AI processing and messaging is conducted within your local network. Your private data remains on your system and is never transmitted to external servers. This design provides you with full control over your information and guarantees that nobody outside your network has access to your data.
 
 ## Compatibility
 
@@ -53,9 +56,7 @@ It is compatible with all Chromium and Gecko-based browsers: Chrome, Vivaldi, Op
 
 ## Prerequisites
 
-Before installing ScribePal, ensure that you have Node Version Manager (nvm) installed. You can install nvm by following the instructions at [nvm-sh/nvm](https://github.com/nvm-sh/nvm#installing-and-updating). nvm helps you easily switch to the Node.js version specified in [`.nvmrc`](.nvmrc).
-
-Also, ensure that the [Ollama](https://ollama.com) host is installed on your local machine or available on your LAN:
+Ensure that the [Ollama](https://ollama.com) host is installed (and configured) on your local machine or available on your LAN by following the next steps:
 
 ### Linux
 
@@ -77,6 +78,22 @@ Also, ensure that the [Ollama](https://ollama.com) host is installed on your loc
     sudo systemctl daemon-reload
     sudo systemctl restart ollama.service
     ```
+### macOS
+
+1. Install Ollama on your host.
+2. Set the environment variables by adding them to your shell profile:
+    ```sh
+    echo 'export OLLAMA_HOST=0.0.0.0' >> ~/.zshrc
+    echo 'export OLLAMA_ORIGINS="chrome-extension://*,moz-extension://*"' >> ~/.zshrc
+    source ~/.zshrc
+    ```
+> [!NOTE]
+> Use `~/.bash_profile` if you're using bash instead of zsh  
+
+> [!NOTE]
+> The `OLLAMA_HOST=0.0.0.0` setting is optional if the Ollama server is running on localhost and you do not need the Ollama server to be accessed from LAN.
+
+3. Restart the Ollama application for the changes to take effect.
 
 ### Windows
 
@@ -93,6 +110,10 @@ Also, ensure that the [Ollama](https://ollama.com) host is installed on your loc
 3. Restart Ollama app.
 
 ## Development
+
+### Prerequisites
+
+Before installing ScribePal, ensure that you have Node Version Manager (nvm) installed. You can install nvm by following the instructions at [nvm-sh/nvm](https://github.com/nvm-sh/nvm#installing-and-updating). nvm helps you easily switch to the Node.js version specified in [`.nvmrc`](.nvmrc).  
 
 ### Installation
 
@@ -116,28 +137,6 @@ Also, ensure that the [Ollama](https://ollama.com) host is installed on your loc
     ```sh
     npm install
     ```
-
-### Alternative Installation Options
-
-If you're not a developer, you can choose one of the following methods:
-
-### 1. Install via Browser Stores
-
-  [![Chrome Store](./badges/chrome-add-on-badge.png)](https://chromewebstore.google.com/detail/godcjpkfkipmljclkgmohpookphckdfl?utm_source=github-repo)
-  [![Edge Store](./badges/edge-add-on-badge.png)](https://microsoftedge.microsoft.com/addons/detail/scribepal/omffcjaihckmfdphencecfigafaoocmb)
-  [![Firefox Add-on](./badges/firefox-add-on-badge.png)](https://addons.mozilla.org/en-US/firefox/addon/scribe-pal/)
-
-> [!NOTE]
-> Releases available in the browser stores might be slightly out of sync with the GitHub releases. This can be due to the review process, packaging delays, or manual submission requirements. For the most up-to-date version, please refer to the [Releases](https://github.com/code-forge-temple/scribe-pal/releases) page.
-
-### 2. Download from Releases
-
-Visit the [Releases](https://github.com/code-forge-temple/scribe-pal/releases) page to download the latest packages:
-
-- For Chromium-based browsers, download `chrome.zip`.
-- For Gecko-based browsers, download `firefox.zip`.
-
-After downloading, unzip the package and [install](#installing) the extension manually.
 
 ### Building
 
@@ -175,8 +174,33 @@ To lint the project, run:
 ```sh
 npm run lint
 ```
+### Load in browser
 
-### Installing in browser
+Follow these [installation intructions](#installing-in-the-browser).
+
+## Alternative Installation Options
+
+If you're not a developer, you can choose one of the following methods:
+
+### A. Install via Browser Stores
+
+  [![Chrome Store](./badges/chrome-add-on-badge.png)](https://chromewebstore.google.com/detail/godcjpkfkipmljclkgmohpookphckdfl?utm_source=github-repo)
+  [![Edge Store](./badges/edge-add-on-badge.png)](https://microsoftedge.microsoft.com/addons/detail/scribepal/omffcjaihckmfdphencecfigafaoocmb)
+  [![Firefox Add-on](./badges/firefox-add-on-badge.png)](https://addons.mozilla.org/en-US/firefox/addon/scribe-pal/)
+
+> [!NOTE]
+> Releases available in the browser stores might be slightly out of sync with the GitHub releases. This can be due to the review process, packaging delays, or manual submission requirements. For the most up-to-date version, please refer to the [Download from Releases](#b-download-from-releases) section.
+
+### B. Download from Releases
+
+Visit the [Releases](https://github.com/code-forge-temple/scribe-pal/releases) page to download the latest packages:
+
+- For Chromium-based browsers, download `chrome.zip`.
+- For Gecko-based browsers, download `firefox.zip`.
+
+After downloading, unzip the package and [install](#installing-in-the-browser) the extension manually.
+
+#### Installing in the browser
 
 To install the the compiled extension, for:
 - Chromium based browsers you need to go to 
@@ -233,7 +257,7 @@ This project is licensed under the GNU General Public License v3.0. See the [LIC
 
 ✦ [**Agentic Signal**](https://github.com/code-forge-temple/agentic-signal) – Visual AI agent workflow automation platform with local LLM integration - build intelligent workflows using drag-and-drop interface, no cloud dependencies required.  
 
-✦ [**Local LLM NPC**](https://github.com/code-forge-temple/local-llm-npc) An interactive educational game built for the Google Gemma 3n Impact Challenge.  
+✦ [**Local LLM NPC**](https://github.com/code-forge-temple/local-llm-npc) – An interactive educational game built for the Google Gemma 3n Impact Challenge.  
 
 ✦ [**Circuit Sketcher - Obsidian Plugin**](https://github.com/code-forge-temple/circuit-sketcher-obsidian-plugin) - A plugin for Obsidian to draw circuits on a canvas.  
 
