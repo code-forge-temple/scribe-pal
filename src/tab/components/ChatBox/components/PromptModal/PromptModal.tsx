@@ -84,20 +84,31 @@ export const PromptModal = withShadowStyles(({
         polyfillStorageLocalSet({[PROMPTS_STORAGE_KEY]: list});
     };
 
-    const handleAddPrompt = () => {
+    const handleAddUpdatePrompt = () => {
         if (!newPromptTitle.trim()) {
             return;
         }
 
-        const newPrompt: PromptItem = {
-            id: generateId(),
-            title: newPromptTitle.trim(),
-            content: text,
-        };
-        const updated = [...prompts, newPrompt];
+        if (selectedPromptId) {
+            const updated = prompts.map(p =>
+                p.id === selectedPromptId
+                    ? {...p, title: newPromptTitle.trim(), content: text}
+                    : p
+            );
 
-        persistPrompts(updated);
-        setSelectedPromptId(newPrompt.id);
+            persistPrompts(updated);
+        } else {
+            const newPrompt: PromptItem = {
+                id: generateId(),
+                title: newPromptTitle.trim(),
+                content: text,
+            };
+            const updated = [...prompts, newPrompt];
+
+            persistPrompts(updated);
+            setSelectedPromptId(newPrompt.id);
+        }
+
         setNewPromptTitle("");
     };
 
@@ -150,7 +161,7 @@ export const PromptModal = withShadowStyles(({
                         <Tooltip text='Save prompt globally'>
                             <AddSvg
                                 className="save-button"
-                                onClick={handleAddPrompt}
+                                onClick={handleAddUpdatePrompt}
                                 style={{width: 20, height: 20}} />
                         </Tooltip>
                     </div>
