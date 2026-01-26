@@ -6,24 +6,24 @@
  ************************************************************************/
 
 import React, {useState, useEffect} from "react";
-import styles from "./RichTextModal.scss?inline";
+import styles from "./CapturedTextModal.scss?inline";
 import {withShadowStyles} from "../../../../utils/withShadowStyles";
+import {RichTextArea} from "../RichTextArea";
 
-type RichTextModalProps = {
+
+type CapturedTextModalProps = {
     visible: boolean;
     richText: string;
-    singleLine?: boolean;
     closeButtonName?: string;
     onUpdate: (updatedText: string) => void;
 };
 
-export const RichTextModal = withShadowStyles(({
+export const CapturedTextModal = withShadowStyles(({
     visible,
     richText,
-    singleLine,
     onUpdate,
     closeButtonName = "Close",
-}:RichTextModalProps) => {
+}: CapturedTextModalProps) => {
     const [text, setText] = useState(richText);
 
     useEffect(() => {
@@ -33,16 +33,17 @@ export const RichTextModal = withShadowStyles(({
     if (!visible) return null;
 
     return (
-        <div className="rich-text-modal">
-            <textarea
-                className={singleLine ? "textarea-single-line" : "textarea"}
-                value={text}
-                rows={singleLine ? 1 : undefined}
-                onChange={(e) => setText(e.target.value)}
-            />
+        <div className="captured-text-modal">
+            <div className="contents">
+                <RichTextArea
+                    value={text}
+                    onChange={setText}
+                    singleLine={false}
+                />
+            </div>
             <div className="modal-buttons">
-                <button onClick={() => { setText(""); onUpdate("") }}>Clear</button>
-                <button onClick={() => { onUpdate(text) }}>{closeButtonName}</button>
+                <button onClick={() => { setText(""); onUpdate(""); }}>Clear</button>
+                <button onClick={() => { onUpdate(text); }}>{closeButtonName}</button>
             </div>
         </div>
     );

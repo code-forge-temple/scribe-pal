@@ -1,0 +1,136 @@
+@use "../../../../../common/styles/variables.scss" as commonVars;
+@use "../../../../styles/mixins.scss" as mixins;
+@use "../../../../styles/variables.scss" as vars;
+
+.prompt-modal {
+    @include mixins.modal-window;
+
+    .contents {
+        display: flex;
+        height: 340px;
+
+        .list-group {
+            width: 250px;
+            display: flex;
+            flex-direction: column;
+            padding: 0;
+            margin: 0;
+            height: auto;
+            overflow-y: auto;
+            margin-right: 12px;
+        
+            .list-group-item {
+                position: relative;
+                display: flex;
+                flex-direction: row;
+                flex-wrap: nowrap;
+                justify-content: space-between;
+                align-items: center;
+                padding: 8px;
+                margin-bottom: 4px;
+                border-radius: vars.$default-border-radius;
+
+                .prompt-name {
+                    display: inline-block;
+                    max-width: 180px;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    vertical-align: middle;
+                }
+
+                .delete-prompt {
+                    color: vars.$default-highlight-color;
+                    display: block;
+                    height: 18px;
+                    width: auto;
+                    cursor: pointer;
+                    flex-shrink: 0;
+                }
+
+                .delete-prompt:hover {
+                    color: white;
+                }
+
+                &:hover {
+                    cursor: pointer;
+                    background-color: #0d6efd;
+                    color: white;
+                }
+
+                &.selected {
+                    background-color: #0d6efd;
+                    color: white;
+                }
+            }
+        }
+
+        .prompt-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 400px;
+
+            .title-row {
+                display: flex;
+                align-items: center;
+                margin-bottom: 8px;
+                gap: 8px;
+
+                .prompt-title-input {
+                    border-radius: 4px;
+                }
+
+                .save-button {                    
+                    border: none;
+                    padding: 6px;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-shrink: 0;
+                    color: vars.$default-highlight-color;
+
+                    &:hover {
+                        color: vars.$default-hover-color;
+                    }
+                }
+            }
+        }
+    }
+
+    .modal-buttons {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 10px;
+
+        button {
+            @include mixins.button-style;
+            margin-left: 10px;
+        }
+    }
+}
+
+.dark-theme {
+    .prompt-modal {
+        background: commonVars.$dark-theme-primary-color;
+        border-color: commonVars.$dark-theme-primary-color;
+
+        .contents {
+            .prompt-content {
+                .prompt-title-input {
+                    background: commonVars.$dark-theme-secondary-color;
+                    color: white;
+                    border-color: commonVars.$dark-theme-secondary-color;
+                }
+            }
+
+            .textarea {
+                background: commonVars.$dark-theme-secondary-color;
+                color: white;
+                border-color: commonVars.$dark-theme-secondary-color;
+            }
+        }
+    }
+}

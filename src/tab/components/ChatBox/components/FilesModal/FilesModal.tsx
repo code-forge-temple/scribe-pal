@@ -42,7 +42,7 @@ export const FilesModal = withShadowStyles(({
                     {files.map((file, index) => (
                         <li
                             key={index}
-                            className="menu-item list-group-item"
+                            className={`menu-item list-group-item${selectedFile === file ? ' selected' : ''}`}
                             onClick={() => setSelectedFile(file)}>
                             <span
                                 title={file.name}

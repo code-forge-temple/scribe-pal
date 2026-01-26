@@ -8,7 +8,7 @@
 import React, {useEffect, useState} from 'react';
 import {Model} from '../../../../utils/types';
 import {EXTENSION_NAME, MESSAGE_TYPES} from '../../../../../common/constants';
-import {RichTextModal} from '../RichTextModal';
+import {NewModelModal} from '../NewModelModal';
 import DeleteModelSvg from '../../../../assets/bin-full.svg';
 import {Tooltip} from '../Tooltip/Tooltip';
 import {polyfillRuntimeConnect, polyfillStorageLocalGet} from '../../../../privilegedAPIs/privilegedAPIs';
@@ -21,7 +21,9 @@ type ChatHeaderProps = {
     selectedModel: string;
     models: Model[];
     isMinimized: boolean;
+    isExpanded: boolean;
     onModelSelect: (model: string) => void;
+    onExpand: () => void;
     onMinimize: () => void;
     onNewModel: (modelName: string) => void;
     onError: (error: string) => void;
@@ -39,7 +41,9 @@ export const ChatHeader = withShadowStyles(({
     selectedModel,
     models,
     isMinimized,
+    isExpanded,
     onModelSelect,
+    onExpand,
     onMinimize,
     onNewModel,
     onError,
@@ -154,6 +158,13 @@ export const ChatHeader = withShadowStyles(({
                 <div className="header-buttons prevent-select">
                     <button
                         className="header-button"
+                        onClick={onExpand}
+                        onMouseDown={(e) => e.stopPropagation()}
+                    >
+                        {isExpanded ? '⇐' : '⇒'}
+                    </button>
+                    <button
+                        className="header-button"
                         onClick={onMinimize}
                         onMouseDown={(e) => e.stopPropagation()}
                     >
@@ -168,10 +179,9 @@ export const ChatHeader = withShadowStyles(({
                     </button>
                 </div>
             </div>
-            <RichTextModal
+            <NewModelModal
                 visible={newModelModalVisible}
                 richText={newModel}
-                singleLine={true}
                 onUpdate={onModelDownload}
                 closeButtonName="Download"
             />

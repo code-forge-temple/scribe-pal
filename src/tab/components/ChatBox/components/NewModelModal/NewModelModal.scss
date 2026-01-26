@@ -1,17 +1,11 @@
 @use "../../../../../common/styles/variables.scss" as commonVars;
 @use "../../../../styles/mixins.scss" as mixins;
 
-.rich-text-modal {
+.new-model-modal {
     @include mixins.modal-window;
 
-    .textarea {
-        @include mixins.main-textarea;
-
-        height: 300px;
-    }
-
-    .textarea-single-line {
-        @include mixins.main-textarea;
+    .contents {
+        display: flex;
     }
 
     .modal-buttons {
@@ -27,15 +21,9 @@
 }
 
 .dark-theme {
-    .rich-text-modal {
+    .new-model-modal {
         background: commonVars.$dark-theme-primary-color;
         border-color: commonVars.$dark-theme-primary-color;
-
-        .textarea,
-        .textarea-single-line {
-            background: commonVars.$dark-theme-secondary-color;
-            color: white;
-            border-color: commonVars.$dark-theme-secondary-color;
-        }
+        
     }
 }

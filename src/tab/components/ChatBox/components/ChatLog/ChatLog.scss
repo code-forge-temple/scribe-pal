@@ -27,21 +27,28 @@
             font-weight: bold;
 
             .delete-message,
-            .copy-message {
+            .copy-message,
+            .share-message,
+            .resend-message {
                 color: vars.$default-highlight-color;
-            }
-
-            svg {
                 display: block;
                 height: 22px;
                 width: auto;
                 margin-right: 5px;
                 cursor: pointer;
+
+                &:hover {
+                    color: vars.$default-hover-color;
+                }
             }
 
             .spinner {
-                color: #0078d7;
                 animation: spin 0.8s linear infinite;
+                color: vars.$default-hover-color;
+                display: block;
+                height: 22px;
+                width: auto;
+                margin-right: 5px;
             }
 
             @keyframes spin {
@@ -106,8 +113,15 @@
             .sender {
                 color: white;
 
-                svg {
-                    color: #9730f5;
+                .delete-message,
+                .copy-message,
+                .share-message,
+                .resend-message {
+                    color: vars.$default-highlight-color-dark;
+
+                    &:hover {
+                        color: vars.$default-hover-color;
+                    }
                 }
             }
         }

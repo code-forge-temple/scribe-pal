@@ -12,6 +12,8 @@ import {EXTENSION_NAME} from '../../../../../common/constants';
 import SpinnerSvg from '../../../../assets/refresh-double.svg';
 import ScrollToEndSvg from '../../../../assets/download-circle-solid.svg';
 import DeleteMessageSvg from '../../../../assets/bin-full.svg';
+import ResendMessageSvg from '../../../../assets/undo.svg';
+import ShareMessageHistorySvg from '../../../../assets/share-android.svg';
 import CopyMessageSvg from '../../../../assets/copy.svg';
 import {Group} from '../../../Group';
 import styles from "./ChatLog.scss?inline";
@@ -24,12 +26,13 @@ type ChatLogProps = {
     isMinimized: boolean;
     onDeleteMessage: (messageId: string, messageIndex: number) => void;
     onCopyMessage: (messageId: string, messageIndex: number) => void;
+    onResendMessage: (messageIndex: number) => void;
+    onShareMessageHistory: (messageIndex: number) => void;
 }
 
-export const ChatLog = withShadowStyles(({messages, isMinimized, onDeleteMessage, onCopyMessage}:ChatLogProps) => {
+export const ChatLog = withShadowStyles(({messages, isMinimized, onShareMessageHistory, onDeleteMessage, onCopyMessage, onResendMessage}:ChatLogProps) => {
     const {updateScroll, setAutoScroll, userInterruptAutoScroll} = useAutoScroll();
     const chatLogRef = useRef<HTMLDivElement>(null);
-
 
     useEffect(() => {
         if (chatLogRef.current) {
@@ -63,9 +66,26 @@ export const ChatLog = withShadowStyles(({messages, isMinimized, onDeleteMessage
                             <Tooltip text='Delete message'>
                                 <DeleteMessageSvg className="delete-message" onClick={() => onDeleteMessage(msg.id, index)} />
                             </Tooltip>
+                            <Tooltip text='Share message history'>
+                                <ShareMessageHistorySvg className="share-message" onClick={() => onShareMessageHistory(index)} />
+                            </Tooltip>
                             <Tooltip text='Copy message'>
                                 <CopyMessageSvg className="copy-message" onClick={() => onCopyMessage(msg.id, index)} />
                             </Tooltip>
+                            {
+                                msg.sender === "user" ? (
+                                    <Tooltip text='Resend message'>
+                                        <ResendMessageSvg
+                                            className="resend-message"
+                                            onClick={() => {
+                                                if (msg.sender === "user") {
+                                                    onResendMessage(index);
+                                                }
+                                            }}
+                                        />
+                                    </Tooltip>
+                                ) : (null)
+                            }
                             {msg.sender === "user" ? "You" : EXTENSION_NAME}:{" "}
                             {msg.loading && <SpinnerSvg className="spinner" />}
                         </span>
