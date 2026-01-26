@@ -54,12 +54,13 @@ export const MarkdownRenderer = withShadowStyles(React.memo(({content}:MarkdownR
 
     return (
         <ReactMarkdown
-            children={content}
             remarkPlugins={[remarkGfm]}
             urlTransform={(url: string) =>
                 url.startsWith("data:") ? url : url
             }
             components={components}
-        />
+        >
+            {content}
+        </ReactMarkdown>
     );
 }), styles);

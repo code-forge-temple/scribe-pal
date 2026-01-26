@@ -22,6 +22,8 @@ export function showChat (tabId: number, chatBoxId: string, coordsOffset: number
     host.style.height = "0";
     host.style.padding = "0";
     host.style.margin = "0";
+    host.style.all = "unset";
+    host.style.boxSizing = "border-box";
 
     document.body.appendChild(host);
 

@@ -56,11 +56,11 @@ It is compatible with all Chromium and Gecko-based browsers: Chrome, Vivaldi, Op
 
 ## Prerequisites
 
-Ensure that the [Ollama](https://ollama.com) host is installed (and configured) on your local machine or available on your LAN by following the next steps:
+Ensure that the Ollama host is installed (and configured) on your local machine or available on your LAN by following the next steps:
 
 ### Linux
 
-1. Install Ollama on your host.
+1. [Install Ollama](https://ollama.com/download) on your host.
 2. Edit the systemd service file by running:
     ```sh
     sudo nano /etc/systemd/system/ollama.service
@@ -70,8 +70,8 @@ Ensure that the [Ollama](https://ollama.com) host is installed (and configured) 
     Environment="OLLAMA_HOST=0.0.0.0"
     Environment="OLLAMA_ORIGINS=chrome-extension://*,moz-extension://*"
     ```
-> [!NOTE]
-> The `OLLAMA_HOST=0.0.0.0` setting is optional if the Ollama server is running on localhost and you do not need the Ollama server to be accessed from LAN.
+    > [!NOTE]
+    > The `OLLAMA_HOST=0.0.0.0` setting is optional if the Ollama server is running on localhost and you do not need the Ollama server to be accessed from LAN.
 
 4. Save the file, then reload and restart the service:
     ```sh
@@ -80,32 +80,32 @@ Ensure that the [Ollama](https://ollama.com) host is installed (and configured) 
     ```
 ### macOS
 
-1. Install Ollama on your host.
+1. [Install Ollama](https://ollama.com/download) on your host.
 2. Set the environment variables by adding them to your shell profile:
     ```sh
     echo 'export OLLAMA_HOST=0.0.0.0' >> ~/.zshrc
     echo 'export OLLAMA_ORIGINS="chrome-extension://*,moz-extension://*"' >> ~/.zshrc
     source ~/.zshrc
     ```
-> [!NOTE]
-> Use `~/.bash_profile` if you're using bash instead of zsh  
+    > [!NOTE]
+    > Use `~/.bash_profile` if you're using bash instead of zsh  
 
-> [!NOTE]
-> The `OLLAMA_HOST=0.0.0.0` setting is optional if the Ollama server is running on localhost and you do not need the Ollama server to be accessed from LAN.
+    > [!NOTE]
+    > The `OLLAMA_HOST=0.0.0.0` setting is optional if the Ollama server is running on localhost and you do not need the Ollama server to be accessed from LAN.
 
 3. Restart the Ollama application for the changes to take effect.
 
 ### Windows
 
-1. Install Ollama on your host.
-2. On the machine running Ollama, set the environment variables:
+1. [Install Ollama](https://ollama.com/download) on your host.
+2. Set the environment variables:
     ```
     OLLAMA_HOST=0.0.0.0
     OLLAMA_ORIGINS=chrome-extension://*,moz-extension://*
     ```
    You can do this via the System Properties or using PowerShell.
-> [!NOTE]
-> The `OLLAMA_HOST=0.0.0.0` setting is optional if the Ollama server is running on localhost and you do not need the Ollama server to be accessed from LAN.
+    > [!NOTE]
+    > The `OLLAMA_HOST=0.0.0.0` setting is optional if the Ollama server is running on localhost and you do not need the Ollama server to be accessed from LAN.
 
 3. Restart Ollama app.
 
@@ -259,6 +259,6 @@ This project is licensed under the GNU General Public License v3.0. See the [LIC
 
 ✦ [**Local LLM NPC**](https://github.com/code-forge-temple/local-llm-npc) – An interactive educational game built for the Google Gemma 3n Impact Challenge.  
 
-✦ [**Circuit Sketcher - Obsidian Plugin**](https://github.com/code-forge-temple/circuit-sketcher-obsidian-plugin) - A plugin for Obsidian to draw circuits on a canvas.  
+✦ [**Circuit Sketcher - Obsidian Plugin**](https://github.com/code-forge-temple/circuit-sketcher-obsidian-plugin) – A plugin for Obsidian to draw circuits on a canvas.  
 
-✦ [**Circuit Sketcher - Web App**](https://github.com/code-forge-temple/circuit-sketcher-app) - A web application to draw circuits on a canvas, based on circuit-sketcher-core.  
+✦ [**Circuit Sketcher - Web App**](https://github.com/code-forge-temple/circuit-sketcher-app) – A web application to draw circuits on a canvas, based on circuit-sketcher-core.  

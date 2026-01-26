@@ -17,9 +17,10 @@ type KeepInViewportProps = {
     position: Position;
     setPosition: (pos: Position) => void;
     isVisible: boolean;
+    triggerCheck?: any;
 };
 
-export function useKeepInViewport ({ref, position, setPosition, isVisible}: KeepInViewportProps) {
+export function useKeepInViewport ({ref, position, setPosition, isVisible, triggerCheck}: KeepInViewportProps) {
     const checkPosition = useCallback(() => {
         if (isVisible && ref.current) {
             const rect = ref.current.getBoundingClientRect();
@@ -64,5 +65,5 @@ export function useKeepInViewport ({ref, position, setPosition, isVisible}: Keep
         return () => {
             window.removeEventListener("resize", checkPosition);
         };
-    }, [isVisible, ref, position, checkPosition, setPosition]);
+    }, [isVisible, ref, position, checkPosition, setPosition, triggerCheck]);
 }

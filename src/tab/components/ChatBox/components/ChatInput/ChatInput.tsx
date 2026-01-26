@@ -97,6 +97,10 @@ export const ChatInput = withShadowStyles(({message, onMessageChange, onSend}: C
                 rows={1}
                 placeholder="Type your message..."
                 value={message}
+                onKeyUp={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }}
                 onChange={(e) => onMessageChange(e.target.value)} // needed in situations like spellcheck for example
                 onPaste={(e) => {
                     e.preventDefault();

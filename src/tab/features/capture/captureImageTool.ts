@@ -119,8 +119,8 @@ export function startCaptureImage (onCaptureImageFinished: OnCaptureImageFinishe
                     if (ctx) {
                         ctx.drawImage(
                             fullImage,
-                            rectLeft + window.scrollX,
-                            rectTop + window.scrollY,
+                            rectLeft,
+                            rectTop,
                             rectWidth,
                             rectHeight,
                             0,

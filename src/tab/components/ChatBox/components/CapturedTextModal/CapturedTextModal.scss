@@ -1,0 +1,30 @@
+@use "../../../../../common/styles/variables.scss" as commonVars;
+@use "../../../../styles/mixins.scss" as mixins;
+
+.captured-text-modal {
+    @include mixins.modal-window;
+
+    .contents {
+        display: flex;
+        height: 300px;
+    }
+
+    .modal-buttons {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 10px;
+
+        button {
+            @include mixins.button-style;
+            margin-left: 10px;
+        }
+    }
+}
+
+.dark-theme {
+    .captured-text-modal {
+        background: commonVars.$dark-theme-primary-color;
+        border-color: commonVars.$dark-theme-primary-color;
+        
+    }
+}

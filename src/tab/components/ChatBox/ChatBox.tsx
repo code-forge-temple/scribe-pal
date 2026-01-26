@@ -16,7 +16,7 @@ import {useChatLog} from "../../hooks/useChatLog";
 import {Tools} from "./components/Tools";
 import {useKeepInViewport} from "../../hooks/useKeepInViewport";
 import {startCapture} from "../../features/capture/captureTool";
-import {RichTextModal} from "./components/RichTextModal";
+import {CapturedTextModal} from "./components/CapturedTextModal";
 import {ReferencesList} from "./components/ReferencesList";
 import {getLanguageForExtension, prefixChatBoxId} from "../../utils/utils";
 import PromptSvg from '../../assets/eye-solid.svg';
@@ -32,6 +32,7 @@ import {startCaptureImage} from "../../features/capture/captureImageTool";
 import {ImageModal} from "./components/ImageModal";
 import {ATTACHED_TAG, CAPTURED_IMAGE_TAG, CAPTURED_TAG} from "../../utils/constants";
 import {FilesModal} from "./components/FilesModal";
+import {PromptModal} from "./components/PromptModal";
 
 const formatMessage = (message: string, {capturedText, capturedImage, attachedFiles}: {capturedText: string, capturedImage: string, attachedFiles: FileData[]}) => {
     let newMessage = message.replace(
@@ -85,6 +86,7 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
     const [selectedModel, setSelectedModel] = usePersistentState<string>("chatBoxSelectedModel", "", {tabId, chatBoxId});
     const [models, setModels] = useState<Model[]>([]);
     const [isMinimized, setIsMinimized] = usePersistentState<boolean>("chatBoxMinimized", false, {tabId, chatBoxId});
+    const [isExpanded, setIsExpanded] = usePersistentState<boolean>("chatBoxExpanded", false, {tabId, chatBoxId});
     const [capturedText, setCapturedText] = usePersistentState<string>("capturedText", "", {tabId, chatBoxId});
     const [capturedImage, setCapturedImage] = usePersistentState<string>("capturedImage", "", {tabId, chatBoxId});
     const [capturedModalVisible, setCapturedModalVisible] = useState<boolean>(false);
@@ -177,7 +179,7 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
         };
     }, []);
 
-    useKeepInViewport({ref: boxRef, position, setPosition, isVisible});
+    useKeepInViewport({ref: boxRef, position, setPosition, isVisible, triggerCheck: isExpanded});
 
     const handleSend = async () => {
         if (message.trim() === "") return;
@@ -236,6 +238,81 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
         });
     };
 
+    const handleResendMessage = (messageIndex: number) => {
+        const msg = chatLog[messageIndex];
+
+        if (!msg || msg.sender !== ROLE.USER) return;
+
+        const truncatedChatLog = chatLog.slice(0, messageIndex + 1);
+        const conversationHistory = truncatedChatLog
+            .slice(0, messageIndex)
+            .filter((m) => !m.loading)
+            .map((m) => ({
+                role: m.sender === ROLE.USER ? ROLE.USER : ROLE.ASSISTANT,
+                content: m.text
+            }));
+        const systemMessage = promptMessage.trim()
+            ? [{role: ROLE.SYSTEM, content: promptMessage.trim()}]
+            : [];
+        const conversation = [
+            ...systemMessage,
+            ...conversationHistory,
+            {role: ROLE.USER, content: msg.text}
+        ];
+
+        if (!selectedModel) {
+            setChatLog({
+                text: `${EXTENSION_NAME}: Please select a model before resending a message.`,
+                sender: EXTENSION_NAME
+            });
+
+            return;
+        }
+
+        for (let i = chatLog.length - 1; i > messageIndex; i--) {
+            setChatLog({delete: true, messageId: chatLog[i].id});
+        }
+
+        const pendingMessageId = setChatLog({
+            text: `${EXTENSION_NAME}: `,
+            sender: EXTENSION_NAME,
+            loading: true
+        });
+
+        polyfillRuntimeConnect({
+            name: MESSAGE_TYPES.FETCH_AI_RESPONSE,
+            data: {type: MESSAGE_TYPES.FETCH_AI_RESPONSE, messages: conversation, model: selectedModel},
+            onMessage: (response) => {
+                if ("error" in response) {
+                    setChatLog({
+                        text: `${EXTENSION_NAME}: Sorry, there was an error: ${response.error}`,
+                        messageId: pendingMessageId,
+                    });
+                } else {
+                    setChatLog({text: response.reply, messageId: pendingMessageId}, response.final === true);
+                }
+            },
+        });
+    };
+
+    const handleShareMessageHistory = (messageIndex: number) => {
+        const historyToShare = chatLog
+            .slice(0, messageIndex + 1)
+            .filter((msg) => !msg.loading)
+            .map((msg) => {
+                const sender = msg.sender === ROLE.USER ? "You" : EXTENSION_NAME;
+                const content = msg.text.replace(`${EXTENSION_NAME}: `, "");
+                return `**${sender}:**\n${content}`;
+            })
+            .join("\n\n---\n\n");
+
+        navigator.clipboard.writeText(historyToShare).then(() => {
+            console.log("Message history copied to clipboard");
+        }).catch((err) => {
+            console.error("Failed to copy message history:", err);
+        });
+    };
+
     const handleClose = () => {
         (async () => {
             const tabStorage = await polyfillGetTabStorage(tabId);
@@ -272,12 +349,12 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
     const handleDeleteMessage = (messageId: string, messageIndex: number) => {
         if (messageIndex === chatLog.length - 1) {
             polyfillRuntimeSendMessage({type: MESSAGE_TYPES.ABORT_AI_RESPONSE});
-
-        };
+        }
         setChatLog({delete: true, messageId});
     };
 
     const handleMinimize = () => { setIsMinimized(!isMinimized); };
+    const handleExpand = () => {setIsExpanded(!isExpanded); };
 
     const toggleChatVisibility = (visible: boolean) => {
         window.postMessage(
@@ -331,7 +408,8 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
                 top: position.top,
                 display: isVisible ? "flex" : "none",
                 opacity: isVisible ? 1 : 0,
-                transition: 'opacity 0.3s ease-in-out'
+                transition: 'opacity 0.3s ease-in-out',
+                width: isExpanded ? '800px' : '',
             }} >
             <ChatHeader
                 selectedModel={selectedModel}
@@ -340,8 +418,10 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
                 onError={(error: string) => setChatLog({text: error, sender: EXTENSION_NAME})}
                 onModelDelete={handleModelDelete}
                 isMinimized={isMinimized}
+                isExpanded={isExpanded}
                 onModelSelect={setSelectedModel}
                 onModelsRefresh={fetchModels}
+                onExpand={handleExpand}
                 onMinimize={handleMinimize}
                 onClose={handleClose}
             />
@@ -354,10 +434,10 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
                         onCopyMessage={(msgId: string) => {
                             const foundMessage = chatLog.find((msg) => msg.id === msgId);
                             const message = (foundMessage?.text ?? '').replace(`${EXTENSION_NAME}: `, "");
-
                             navigator.clipboard.writeText(message);
-                        }
-                        }
+                        }}
+                        onResendMessage={handleResendMessage}
+                        onShareMessageHistory={handleShareMessageHistory}
                     />
                     <input
                         ref={fileInputRef}
@@ -410,7 +490,7 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
                                 setPromptModalVisible(true);
                             },
                             label: "Prompt",
-                            tooltip: "prompt",
+                            tooltip: "add prompt",
                             icon: promptMessage ? <PromptSvg className="icon" /> : undefined
                         },
                     ]} />
@@ -453,7 +533,7 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
                         ] : []),
 
                     ]} />
-                    <RichTextModal
+                    <CapturedTextModal
                         visible={capturedModalVisible}
                         richText={capturedText}
                         closeButtonName="Save"
@@ -468,9 +548,9 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
                         imageBase64={capturedImage}
                         closeButtonName="Save"
                         onUpdate={(txt:string) => { setCapturedImage(txt); setCapturedImageModalVisible(false); }} />
-                    <RichTextModal
+                    <PromptModal
                         visible={promptModalVisible}
-                        richText={promptMessage}
+                        prompt={promptMessage}
                         closeButtonName="Save"
                         onUpdate={(txt:string) => { setPromptMessage(txt); setPromptModalVisible(false); }} />
                     <ChatInput
