@@ -70,8 +70,7 @@ Ensure that the Ollama host is installed (and configured) on your local machine 
     Environment="OLLAMA_HOST=0.0.0.0"
     Environment="OLLAMA_ORIGINS=chrome-extension://*,moz-extension://*"
     ```
-    > [!NOTE]
-    > The `OLLAMA_HOST=0.0.0.0` setting is optional if the Ollama server is running on localhost and you do not need the Ollama server to be accessed from LAN.
+   > **Note:** The `OLLAMA_HOST=0.0.0.0` setting is optional if the Ollama server is running on localhost and you do not need the Ollama server to be accessed from LAN.
 
 4. Save the file, then reload and restart the service:
     ```sh
@@ -87,11 +86,9 @@ Ensure that the Ollama host is installed (and configured) on your local machine 
     echo 'export OLLAMA_ORIGINS="chrome-extension://*,moz-extension://*"' >> ~/.zshrc
     source ~/.zshrc
     ```
-    > [!NOTE]
-    > Use `~/.bash_profile` if you're using bash instead of zsh  
+    > **Note:** Use `~/.bash_profile` if you're using bash instead of zsh  
 
-    > [!NOTE]
-    > The `OLLAMA_HOST=0.0.0.0` setting is optional if the Ollama server is running on localhost and you do not need the Ollama server to be accessed from LAN.
+    > **Note:** The `OLLAMA_HOST=0.0.0.0` setting is optional if the Ollama server is running on localhost and you do not need the Ollama server to be accessed from LAN.
 
 3. Restart the Ollama application for the changes to take effect.
 
@@ -104,8 +101,7 @@ Ensure that the Ollama host is installed (and configured) on your local machine 
     OLLAMA_ORIGINS=chrome-extension://*,moz-extension://*
     ```
    You can do this via the System Properties or using PowerShell.
-    > [!NOTE]
-    > The `OLLAMA_HOST=0.0.0.0` setting is optional if the Ollama server is running on localhost and you do not need the Ollama server to be accessed from LAN.
+    > **Note:** The `OLLAMA_HOST=0.0.0.0` setting is optional if the Ollama server is running on localhost and you do not need the Ollama server to be accessed from LAN.
 
 3. Restart Ollama app.
 
