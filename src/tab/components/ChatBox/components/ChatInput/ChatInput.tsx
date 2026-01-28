@@ -15,9 +15,10 @@ type ChatInputProps = {
     message: string;
     onMessageChange: (value: string) => void;
     onSend: () => void;
+    disabled?: boolean;
 }
 
-export const ChatInput = withShadowStyles(({message, onMessageChange, onSend}: ChatInputProps) => {
+export const ChatInput = withShadowStyles(({message, onMessageChange, onSend, disabled = false}: ChatInputProps) => {
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const [caret, setCaret] = useState<number>(0);
     const [suggestionsVisible, setSuggestionsVisible] = useState(false);
@@ -97,12 +98,15 @@ export const ChatInput = withShadowStyles(({message, onMessageChange, onSend}: C
                 rows={1}
                 placeholder="Type your message..."
                 value={message}
+                disabled={disabled}
                 onKeyUp={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
                 }}
                 onChange={(e) => onMessageChange(e.target.value)} // needed in situations like spellcheck for example
                 onPaste={(e) => {
+                    if (disabled) return;
+
                     e.preventDefault();
 
                     const pastedText = e.clipboardData.getData('text')
@@ -121,6 +125,8 @@ export const ChatInput = withShadowStyles(({message, onMessageChange, onSend}: C
                     setCaret(start + pastedText.length);
                 }}
                 onKeyDown={(e) => {
+                    if (disabled) return;
+
                     e.stopPropagation();
 
                     const input = e.target as HTMLInputElement;
@@ -203,7 +209,7 @@ export const ChatInput = withShadowStyles(({message, onMessageChange, onSend}: C
                     }
                 }}
             />
-            <button onClick={onSend}>Send</button>
+            <button onClick={onSend} disabled={disabled}>Send</button>
             {suggestionsVisible && (
                 <ChatInputSuggestions
                     suggestions={SUGGESTIONS}

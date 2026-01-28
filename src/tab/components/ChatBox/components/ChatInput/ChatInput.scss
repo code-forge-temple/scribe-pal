@@ -16,12 +16,23 @@
         overflow: hidden;
         resize: none;
         font-family: monospace;
+        
+        &:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background: #f0f0f0;
+        }
     }
 
     button {
         @include mixins.button-style;
         border-radius: 0 4px 4px 0;
-
+        
+        &:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background: #999;
+        }
     }
 }
 
@@ -31,6 +42,17 @@
             background: commonVars.$dark-theme-secondary-color;
             border-color: commonVars.$dark-theme-secondary-color;
             color: white;
+            
+            &:disabled {
+                background: #1a1a1a;
+                opacity: 0.6;
+            }
+        }
+        
+        button {
+            &:disabled {
+                background: #444;
+            }
         }
     }
 }

@@ -87,6 +87,7 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
     const [models, setModels] = useState<Model[]>([]);
     const [isMinimized, setIsMinimized] = usePersistentState<boolean>("chatBoxMinimized", false, {tabId, chatBoxId});
     const [isExpanded, setIsExpanded] = usePersistentState<boolean>("chatBoxExpanded", false, {tabId, chatBoxId});
+    const [isLLMResponding, setIsLLMResponding] = useState<boolean>(false);
     const [capturedText, setCapturedText] = usePersistentState<string>("capturedText", "", {tabId, chatBoxId});
     const [capturedImage, setCapturedImage] = usePersistentState<string>("capturedImage", "", {tabId, chatBoxId});
     const [capturedModalVisible, setCapturedModalVisible] = useState<boolean>(false);
@@ -220,6 +221,8 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
             loading: true
         });
 
+        setIsLLMResponding(true);
+
         polyfillRuntimeConnect({
             name: MESSAGE_TYPES.FETCH_AI_RESPONSE,
             data: {type: MESSAGE_TYPES.FETCH_AI_RESPONSE, messages: conversation, model: selectedModel},
@@ -229,8 +232,13 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
                         text: `${EXTENSION_NAME}: Sorry, there was an error: ${response.error}`,
                         messageId: pendingMessageId,
                     });
+                    setIsLLMResponding(false);
                 } else {
                     setChatLog({text: response.reply, messageId: pendingMessageId}, response.final === true);
+
+                    if (response.final) {
+                        setIsLLMResponding(false);
+                    }
                 }
 
                 setMessage("");
@@ -279,6 +287,8 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
             loading: true
         });
 
+        setIsLLMResponding(true);
+
         polyfillRuntimeConnect({
             name: MESSAGE_TYPES.FETCH_AI_RESPONSE,
             data: {type: MESSAGE_TYPES.FETCH_AI_RESPONSE, messages: conversation, model: selectedModel},
@@ -288,8 +298,13 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
                         text: `${EXTENSION_NAME}: Sorry, there was an error: ${response.error}`,
                         messageId: pendingMessageId,
                     });
+                    setIsLLMResponding(false);
                 } else {
                     setChatLog({text: response.reply, messageId: pendingMessageId}, response.final === true);
+
+                    if (response.final) {
+                        setIsLLMResponding(false);
+                    }
                 }
             },
         });
@@ -349,7 +364,9 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
     const handleDeleteMessage = (messageId: string, messageIndex: number) => {
         if (messageIndex === chatLog.length - 1) {
             polyfillRuntimeSendMessage({type: MESSAGE_TYPES.ABORT_AI_RESPONSE});
+            setIsLLMResponding(false);
         }
+
         setChatLog({delete: true, messageId});
     };
 
@@ -557,6 +574,7 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
                         message={message}
                         onMessageChange={setMessage}
                         onSend={handleSend}
+                        disabled={isLLMResponding}
                     />
                 </>
             )}
