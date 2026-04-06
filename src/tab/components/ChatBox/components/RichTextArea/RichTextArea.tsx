@@ -27,12 +27,14 @@ export const RichTextArea = withShadowStyles(({
 }:RichTextAreaProps) => {
     const [caret, setCaret] = useState(value.length);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const isManualUpdateRef = useRef(false);
 
     useLayoutEffect(() => {
-        if (textareaRef.current) {
+        if (textareaRef.current && isManualUpdateRef.current) {
             textareaRef.current.setSelectionRange(caret, caret);
+            isManualUpdateRef.current = false;
         }
-    }, [caret]);
+    }, [caret, value]);
 
     return (
         <div className={`rich-text-area ${className || ""}`}>
@@ -43,8 +45,10 @@ export const RichTextArea = withShadowStyles(({
                 value={value}
                 rows={singleLine ? 1 : undefined}
                 onChange={(e) => {
-                    onChange(e.target.value);
-                    setCaret(e.target.selectionStart ?? e.target.value.length);
+                    if (!isManualUpdateRef.current) {
+                        onChange(e.target.value);
+                        setCaret(e.target.selectionStart ?? e.target.value.length);
+                    }
                 }}
                 onPaste={(e) => {
                     e.preventDefault();
@@ -64,6 +68,8 @@ export const RichTextArea = withShadowStyles(({
                     const start = input.selectionStart ?? 0;
                     const end = input.selectionEnd ?? 0;
                     const newText = value.slice(0, start) + pastedText + value.slice(end);
+
+                    isManualUpdateRef.current = true;
 
                     setCaret(start + pastedText.length);
                     onChange(newText);
@@ -87,10 +93,14 @@ export const RichTextArea = withShadowStyles(({
 
                     if (e.key === "Tab") {
                         e.preventDefault();
+
                         newText = value.slice(0, start) + "\t" + value.slice(end);
                         newCaret = start + 1;
+                        isManualUpdateRef.current = true;
+
                         setCaret(newCaret);
                         onChange(newText);
+
                         return;
                     }
 
@@ -103,6 +113,7 @@ export const RichTextArea = withShadowStyles(({
 
                         newText = value.slice(0, start) + "\n" + value.slice(end);
                         newCaret = start + 1;
+                        isManualUpdateRef.current = true;
 
                         setCaret(newCaret);
                         onChange(newText);
@@ -121,6 +132,8 @@ export const RichTextArea = withShadowStyles(({
                             newCaret = start - 1;
                         }
 
+                        isManualUpdateRef.current = true;
+
                         setCaret(newCaret);
                         onChange(newText);
 
@@ -138,6 +151,8 @@ export const RichTextArea = withShadowStyles(({
                             newCaret = start;
                         }
 
+                        isManualUpdateRef.current = true;
+
                         setCaret(newCaret);
                         onChange(newText);
 
@@ -149,6 +164,7 @@ export const RichTextArea = withShadowStyles(({
 
                         newText = value.slice(0, start) + e.key + value.slice(end);
                         newCaret = start + 1;
+                        isManualUpdateRef.current = true;
 
                         setCaret(newCaret);
                         onChange(newText);
