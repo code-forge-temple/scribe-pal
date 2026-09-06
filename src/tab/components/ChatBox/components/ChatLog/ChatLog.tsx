@@ -20,17 +20,19 @@ import styles from "./ChatLog.scss?inline";
 import {useAutoScroll} from '../../../../hooks';
 import {Tooltip} from '../Tooltip/Tooltip';
 import {withShadowStyles} from '../../../../utils/withShadowStyles';
+import {ThinkingAccordion} from '../ThinkingAccordion';
 
 type ChatLogProps = {
     messages: ChatMessage[];
     isMinimized: boolean;
+    isResponding: boolean;
     onDeleteMessage: (messageId: string, messageIndex: number) => void;
     onCopyMessage: (messageId: string, messageIndex: number) => void;
     onResendMessage: (messageIndex: number) => void;
     onShareMessageHistory: (messageIndex: number) => void;
 }
 
-export const ChatLog = withShadowStyles(({messages, isMinimized, onShareMessageHistory, onDeleteMessage, onCopyMessage, onResendMessage}:ChatLogProps) => {
+export const ChatLog = withShadowStyles(({messages, isMinimized, isResponding, onShareMessageHistory, onDeleteMessage, onCopyMessage, onResendMessage}:ChatLogProps) => {
     const {updateScroll, setAutoScroll, userInterruptAutoScroll} = useAutoScroll();
     const chatLogRef = useRef<HTMLDivElement>(null);
 
@@ -74,7 +76,7 @@ export const ChatLog = withShadowStyles(({messages, isMinimized, onShareMessageH
                             </Tooltip>
                             {
                                 msg.sender === "user" ? (
-                                    <Tooltip text='Resend message'>
+                                    <Tooltip text='Rewind & resend message'>
                                         <ResendMessageSvg
                                             className="resend-message"
                                             onClick={() => {
@@ -89,6 +91,18 @@ export const ChatLog = withShadowStyles(({messages, isMinimized, onShareMessageH
                             {msg.sender === "user" ? "You" : EXTENSION_NAME}:{" "}
                             {msg.loading && <SpinnerSvg className="spinner" />}
                         </span>
+                        {
+                            msg.sender !== "user" && msg.thinking && (
+                                <ThinkingAccordion
+                                    thinking={msg.thinking}
+                                    isStreaming={
+                                        isResponding &&
+                                        index === messages.length - 1 &&
+                                        msg.text.replace(`${EXTENSION_NAME}: `, "").trim() === ""
+                                    }
+                                />
+                            )
+                        }
                         {
                             !msg.loading && (
                                 <MarkdownRenderer content={msg.text.replace(`${EXTENSION_NAME}: `, "")} />

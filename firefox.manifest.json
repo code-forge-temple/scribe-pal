@@ -21,8 +21,7 @@
         "storage",
         "webNavigation",
         "notifications",
-        "http://*/*",
-        "https://*/*"
+        "<all_urls>"
     ],
     "background": {
         "scripts": [

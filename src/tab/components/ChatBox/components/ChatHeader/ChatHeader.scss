@@ -13,15 +13,22 @@
 
     .model-selection {
         display: flex;
+        align-items: center;
 
         select {
+            background: #036cbf;
+            border-radius: 4px;
             cursor: pointer;
             padding: 0 5px 0 5px;
             width: auto;
-            max-width: 150px;
+            max-width: 200px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+
+            &.expanded {
+                max-width: 300px;
+            }
 
             option {
                 color: black;
@@ -29,7 +36,8 @@
             }
         }
 
-        .delete-model {
+        .delete-model,
+        .settings-model {
             color: white;
         }
 

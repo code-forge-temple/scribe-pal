@@ -1,0 +1,124 @@
+@use "../../../../../common/styles/variables.scss" as commonVars;
+@use "../../../../styles/mixins.scss" as mixins;
+
+.llm-settings-modal {
+    @include mixins.modal-window;
+
+    .contents {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .model-name {
+        display: block;
+        font-weight: bold;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+    }
+
+    .setting-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+
+        .setting-label {
+            display: inline-block;
+            flex-shrink: 0;
+            min-width: 110px;
+        }
+
+        .toggle {
+            flex-shrink: 0;
+        }
+    }
+
+    // temperature slider, sharing the Temperature toggle's row
+    .temp-slider-wrap {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+        min-width: 0;
+
+        &.disabled {
+            opacity: 0.5;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            flex: 1;
+            min-width: 0;
+            height: 4px;
+            border-radius: 2px;
+            background: #c9c9c9;
+            outline: none;
+            cursor: pointer;
+
+            &::-webkit-slider-thumb {
+                -webkit-appearance: none;
+                appearance: none;
+                width: 14px;
+                height: 14px;
+                border-radius: 50%;
+                background: #0078d7;
+                cursor: pointer;
+            }
+
+            &::-moz-range-thumb {
+                width: 14px;
+                height: 14px;
+                border: none;
+                border-radius: 50%;
+                background: #0078d7;
+                cursor: pointer;
+            }
+
+            &:disabled {
+                cursor: default;
+
+                &::-webkit-slider-thumb {
+                    cursor: default;
+                }
+
+                &::-moz-range-thumb {
+                    cursor: default;
+                }
+            }
+        }
+
+        .slider-value {
+            display: inline-block;
+            flex-shrink: 0;
+            min-width: 28px;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+    }
+
+    .modal-buttons {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 10px;
+
+        button {
+            @include mixins.button-style;
+            margin-left: 10px;
+        }
+    }
+}
+
+.dark-theme {
+    .llm-settings-modal {
+        background: commonVars.$dark-theme-primary-color;
+        border-color: commonVars.$dark-theme-primary-color;
+        color: white;
+
+        .temp-slider-wrap input[type="range"] {
+            background: commonVars.$dark-theme-secondary-color;
+        }
+    }
+}

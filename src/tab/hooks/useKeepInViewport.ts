@@ -25,7 +25,9 @@ export function useKeepInViewport ({ref, position, setPosition, isVisible, trigg
         if (isVisible && ref.current) {
             const rect = ref.current.getBoundingClientRect();
 
+            // Bail if the box can't fit — clamping both edges would oscillate.
             if (window.innerWidth < rect.width) return;
+            if (window.innerHeight < rect.height) return;
 
             let newLeft = parseInt(position.left, 10);
             let newTop = parseInt(position.top, 10);

@@ -63,6 +63,29 @@ export const isSetTabStorageResponse = (data: unknown): data is SetTabStorageRes
     return !!data && typeof data === 'object' && 'type' in data && data.type === `${PRIVILEGED_API.SET_TAB_STORAGE}.response`;
 }
 
+export type BrowserStorageOnChanged = {
+    type: typeof PRIVILEGED_API.BROWSER_STORAGE_ON_CHANGED;
+    payload: {
+        key: string | string[];
+    };
+    subscriptionId: string;
+}
+
+export type BrowserStorageOnChangedResponse = {
+    type: `${typeof PRIVILEGED_API.BROWSER_STORAGE_ON_CHANGED}.response`;
+    subscriptionId: string;
+    response: any;
+}
+
+export const isBrowserStorageOnChangedResponse = (data: unknown): data is BrowserStorageOnChangedResponse => {
+    return !!data && typeof data === 'object' && 'type' in data && data.type === `${PRIVILEGED_API.BROWSER_STORAGE_ON_CHANGED}.response`;
+}
+
+export type BrowserStorageOnChangedUnsubscribe = {
+    type: typeof PRIVILEGED_API.BROWSER_STORAGE_ON_CHANGED_UNSUBSCRIBE;
+    subscriptionId: string;
+}
+
 export type BrowserRuntimeSendMessage = {
     type: typeof PRIVILEGED_API.BROWSER_RUNTIME_SEND_MESSAGE;
     payload: any;
@@ -107,6 +130,8 @@ export const isBrowserRuntimeConnectResponseDisconnect = (data: unknown): data i
 export type EventData<T extends keyof MessageData> =
     BrowserStorageLocalGet |
     BrowserStorageLocalSet |
+    BrowserStorageOnChanged |
+    BrowserStorageOnChangedUnsubscribe |
     GetTabStorage |
     SetTabStorage |
     BrowserRuntimeSendMessage |
@@ -115,6 +140,7 @@ export type EventData<T extends keyof MessageData> =
 export type EventDataResponse =
     BrowserStorageLocalGetResponse |
     BrowserStorageLocalSetResponse |
+    BrowserStorageOnChangedResponse |
     GetTabStorageResponse |
     SetTabStorageResponse |
     BrowserRuntimeSendMessageResponse |

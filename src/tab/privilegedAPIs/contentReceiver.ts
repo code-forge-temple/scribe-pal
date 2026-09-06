@@ -8,10 +8,15 @@
 import {browser} from "../../common/browser";
 import {decrypt, windowPostEncryptedMessage} from "../utils/encryption";
 import {getTabStorage, setTabStorage} from "../utils/storageHelper";
-import {MessageData} from "../utils/types";
+import {MessageData, StorageChanges} from "../utils/types";
 import {runtimeConnect} from "../utils/utils";
 import {PRIVILEGED_API} from "./constants";
 import {EventData} from "./types";
+
+
+type StorageChangeListener = (changes: StorageChanges, areaName: string) => void;
+
+const storageChangeSubscriptions = new Map<string, StorageChangeListener>();
 
 
 const privilegedApiRequestsHandler = <T extends keyof MessageData>(event: MessageEvent<EventData<T>>) => {
@@ -39,6 +44,42 @@ const privilegedApiRequestsHandler = <T extends keyof MessageData>(event: Messag
                     "*"
                 );
             });
+            break;
+        }
+        case PRIVILEGED_API.BROWSER_STORAGE_ON_CHANGED: {
+            const {payload: {key}, subscriptionId} = event.data;
+            const keys = Array.isArray(key) ? key : [key];
+
+            const listener: StorageChangeListener = (changes, areaName) => {
+                if (areaName !== "local") return;
+
+                const response = Object.fromEntries(
+                    Object.entries(changes).filter(([changedKey]) => keys.includes(changedKey))
+                );
+
+                if (Object.keys(response).length === 0) return;
+
+                windowPostEncryptedMessage({
+                    response,
+                    type: `${PRIVILEGED_API.BROWSER_STORAGE_ON_CHANGED}.response`,
+                    subscriptionId,
+                }, "response");
+            };
+
+            storageChangeSubscriptions.set(subscriptionId, listener);
+
+            browser.storage.onChanged.addListener(listener);
+            break;
+        }
+        case PRIVILEGED_API.BROWSER_STORAGE_ON_CHANGED_UNSUBSCRIBE: {
+            const {subscriptionId} = event.data;
+            const listener = storageChangeSubscriptions.get(subscriptionId);
+
+            if (listener) {
+                browser.storage.onChanged.removeListener(listener);
+
+                storageChangeSubscriptions.delete(subscriptionId);
+            }
             break;
         }
         case PRIVILEGED_API.GET_TAB_STORAGE: {
@@ -89,7 +130,7 @@ const privilegedApiRequestsHandler = <T extends keyof MessageData>(event: Messag
                     }, "response");
                 },
                 onDisconnect: () => {
-                    setTimeout((portIdRef) => {
+                    setTimeout((portIdRef: string) => {
                         window.postMessage(
                             {
                                 type: `${PRIVILEGED_API.BROWSER_RUNTIME_CONNECT}.response.disconnect`,
@@ -121,6 +162,8 @@ const processPrivilegedApiRequests = (event: MessageEvent) => {
     switch (type) {
         case PRIVILEGED_API.BROWSER_STORAGE_LOCAL_GET:
         case PRIVILEGED_API.BROWSER_STORAGE_LOCAL_SET:
+        case PRIVILEGED_API.BROWSER_STORAGE_ON_CHANGED:
+        case PRIVILEGED_API.BROWSER_STORAGE_ON_CHANGED_UNSUBSCRIBE:
         case PRIVILEGED_API.GET_TAB_STORAGE:
         case PRIVILEGED_API.SET_TAB_STORAGE:
         case PRIVILEGED_API.BROWSER_RUNTIME_SEND_MESSAGE:

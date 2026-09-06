@@ -14,7 +14,7 @@ import {polyfillGetTabStorage, polyfillSetTabStorage} from '../privilegedAPIs/pr
 export type Sender = "user" | typeof EXTENSION_NAME;
 
 export type NewChatLogParams = { text: string; sender: Sender; loading?: boolean };
-export type ExistingChatLogParams = { text: string; messageId: string; loading?: boolean };
+export type ExistingChatLogParams = { text: string; messageId: string; loading?: boolean; thinking?: string };
 export type DeleteChatLogParams = { delete: true; messageId: string };
 
 export type UpdateChatLogParams = NewChatLogParams | ExistingChatLogParams;
@@ -83,7 +83,7 @@ export const useChatLog = ({tabId, chatBoxId}: ChatBoxIds) => {
             setChatLogState((prevLog) => {
                 const updated = prevLog.map((msg): ChatMessage =>
                     msg.id === params.messageId
-                        ? {...msg, text: params.text, loading: params.loading}
+                        ? {...msg, text: params.text, loading: params.loading, thinking: params.thinking ?? msg.thinking}
                         : msg
                 );
 

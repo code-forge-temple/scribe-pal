@@ -6,8 +6,10 @@
  ************************************************************************/
 
 import React, {useRef, useEffect, useState, useCallback} from "react";
-import {usePersistentState, useDraggablePosition} from "../../hooks";
-import {ChatBoxIds, FileData, Model} from "../../utils/types";
+import {usePersistentState, useDraggablePosition, useGlobalStorage} from "../../hooks";
+import {ChatBoxIds, FileData} from "../../utils/types";
+import {DeleteModelResponse, FetchModelsResponse, LlmModel} from "../../services/ollamaService/types";
+import {LLM_SETTINGS_STORAGE_KEY, LlmSettingsMap, getModelSettings, withoutModelSettings} from "../../utils/llmSettings";
 import {EXTENSION_NAME, MESSAGE_TYPES} from "../../../common/constants";
 import {ChatInput} from "./components/ChatInput";
 import {ChatLog} from "./components/ChatLog";
@@ -84,7 +86,7 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
     const [message, setMessage] = usePersistentState<string>("chatBoxMessage", "", {tabId, chatBoxId});
     const {chatLog, setChatLog} = useChatLog({tabId, chatBoxId});
     const [selectedModel, setSelectedModel] = usePersistentState<string>("chatBoxSelectedModel", "", {tabId, chatBoxId});
-    const [models, setModels] = useState<Model[]>([]);
+    const [models, setModels] = useState<LlmModel[]>([]);
     const [isMinimized, setIsMinimized] = usePersistentState<boolean>("chatBoxMinimized", false, {tabId, chatBoxId});
     const [isExpanded, setIsExpanded] = usePersistentState<boolean>("chatBoxExpanded", false, {tabId, chatBoxId});
     const [isLLMResponding, setIsLLMResponding] = useState<boolean>(false);
@@ -98,15 +100,17 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
     const [attachedFiles, setAttachedFiles] = usePersistentState<FileData[]>("attachedFiles", [], {tabId, chatBoxId});
     const [attachedFilesModalVisible, setAttachedFilesModalVisible] = useState<boolean>(false);
 
+    const [llmSettingsMap, setLlmSettingsMap] = useGlobalStorage<LlmSettingsMap>(LLM_SETTINGS_STORAGE_KEY, {});
+
     const updateTheme = useTheme(boxRef);
 
     const fetchModels = useCallback(() => {
-        polyfillRuntimeSendMessage({type: MESSAGE_TYPES.FETCH_MODELS}).then((response: any) => {
-            if (response && response.models) {
+        polyfillRuntimeSendMessage({type: MESSAGE_TYPES.FETCH_MODELS}).then((response?: FetchModelsResponse) => {
+            if (response?.success) {
                 setModels(response.models);
             } else {
                 setChatLog({
-                    text: `${EXTENSION_NAME}: ${response && response.error
+                    text: `${EXTENSION_NAME}: ${response?.error
                         ? "Error fetching models: " + response.error
                         : "No models received from service worker."
                     }`,
@@ -120,11 +124,11 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
 
     const pollForNewModel = useCallback((targetModel: string) => {
         const intervalId = setInterval(() => {
-            polyfillRuntimeSendMessage({type: MESSAGE_TYPES.FETCH_MODELS}).then((response: any) => {
-                if (response && response.models) {
+            polyfillRuntimeSendMessage({type: MESSAGE_TYPES.FETCH_MODELS}).then((response?: FetchModelsResponse) => {
+                if (response?.success) {
                     setModels(response.models);
 
-                    if (response.models.some((model: any) => model.name.startsWith(targetModel))) {
+                    if (response.models.some((model) => model.name.startsWith(targetModel))) {
                         clearInterval(intervalId);
                     }
                 }
@@ -223,9 +227,17 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
 
         setIsLLMResponding(true);
 
+        const {think, temperatureEnabled, temperature} = getModelSettings(llmSettingsMap, selectedModel);
+
         polyfillRuntimeConnect({
             name: MESSAGE_TYPES.FETCH_AI_RESPONSE,
-            data: {type: MESSAGE_TYPES.FETCH_AI_RESPONSE, messages: conversation, model: selectedModel},
+            data: {
+                type: MESSAGE_TYPES.FETCH_AI_RESPONSE,
+                messages: conversation,
+                model: selectedModel,
+                ...(think ? {think: true} : {}),
+                ...(temperatureEnabled ? {temperature} : {}),
+            },
             onMessage: (response) => {
                 if ("error" in response) {
                     setChatLog({
@@ -234,7 +246,7 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
                     });
                     setIsLLMResponding(false);
                 } else {
-                    setChatLog({text: response.reply, messageId: pendingMessageId}, response.final === true);
+                    setChatLog({text: response.reply, thinking: response.thinking, messageId: pendingMessageId}, response.final === true);
 
                     if (response.final) {
                         setIsLLMResponding(false);
@@ -289,9 +301,17 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
 
         setIsLLMResponding(true);
 
+        const {think, temperatureEnabled, temperature} = getModelSettings(llmSettingsMap, selectedModel);
+
         polyfillRuntimeConnect({
             name: MESSAGE_TYPES.FETCH_AI_RESPONSE,
-            data: {type: MESSAGE_TYPES.FETCH_AI_RESPONSE, messages: conversation, model: selectedModel},
+            data: {
+                type: MESSAGE_TYPES.FETCH_AI_RESPONSE,
+                messages: conversation,
+                model: selectedModel,
+                ...(think ? {think: true} : {}),
+                ...(temperatureEnabled ? {temperature} : {}),
+            },
             onMessage: (response) => {
                 if ("error" in response) {
                     setChatLog({
@@ -300,7 +320,7 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
                     });
                     setIsLLMResponding(false);
                 } else {
-                    setChatLog({text: response.reply, messageId: pendingMessageId}, response.final === true);
+                    setChatLog({text: response.reply, thinking: response.thinking, messageId: pendingMessageId}, response.final === true);
 
                     if (response.final) {
                         setIsLLMResponding(false);
@@ -347,13 +367,14 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
             return;
         }
 
-        polyfillRuntimeSendMessage({type: MESSAGE_TYPES.DELETE_MODEL, model: modelName}).then((response: any) => {
-            if (response && response.success) {
+        polyfillRuntimeSendMessage({type: MESSAGE_TYPES.DELETE_MODEL, model: modelName}).then((response?: DeleteModelResponse) => {
+            if (response?.success) {
+                setLlmSettingsMap(withoutModelSettings(llmSettingsMap, modelName));
                 setSelectedModel("");
                 fetchModels();
             } else {
                 setChatLog({
-                    text: `${EXTENSION_NAME}: Failed to delete model: ${response && response.error ? response.error : "Unknown error"
+                    text: `${EXTENSION_NAME}: Failed to delete model: ${response?.error ? response.error : "Unknown error"
                     }`,
                     sender: EXTENSION_NAME
                 });
@@ -447,6 +468,7 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
                     <ChatLog
                         messages={chatLog}
                         isMinimized={isMinimized}
+                        isResponding={isLLMResponding}
                         onDeleteMessage={handleDeleteMessage}
                         onCopyMessage={(msgId: string) => {
                             const foundMessage = chatLog.find((msg) => msg.id === msgId);
@@ -459,6 +481,8 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
                     <input
                         ref={fileInputRef}
                         type="file"
+                        name="attachments"
+                        aria-label="Attach files"
                         multiple
                         accept=".txt,.md,.html,.css,.scss,.js,.ts,.tsx,.json,.xml,.csv,.yaml,.yml,.ini,.log,.sh,.sql,.py,.java,.c,.cpp,.h,.bat,.env"
                         style={{display: "none"}}

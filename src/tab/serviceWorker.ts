@@ -9,7 +9,7 @@ import {OllamaService} from "./services/ollamaService";
 import {EXTENSION_NAME, MESSAGE_TYPES} from "../common/constants";
 import {getTabStorage, setTabStorage} from "./utils/storageHelper";
 import {browser} from "../common/browser";
-import {polyfillScriptingExecuteScript} from "./privilegedAPIs/privilegedAPIs";
+import {polyfillCaptureVisibleTab, polyfillScriptingExecuteScript} from "./privilegedAPIs/privilegedAPIs";
 import {isFetchAiResponseMessageData, isFetchModelMessageData} from "./utils/types";
 
 
@@ -77,21 +77,27 @@ browser.runtime.onMessage.addListener((
 
             return true;
 
-        case MESSAGE_TYPES.CAPTURE_VISIBLE_TAB:
-            (async () => {
-                const [{windowId}] = await browser.tabs.query({currentWindow: true, active: true});
+        case MESSAGE_TYPES.CAPTURE_VISIBLE_TAB: {
+            // Use the requesting tab's own window, not a guessed "active" one.
+            const windowId = sender.tab?.windowId;
 
-                browser.tabs.captureVisibleTab(windowId, {format: "png"}, function (dataUrl: string) {
-                    if (chrome.runtime.lastError) {
-                        console.error(chrome.runtime.lastError);
-                        responseCallback({dataUrl: ""});
-                    } else {
-                        responseCallback({dataUrl});
-                    }
-                });
-            })();
+            if (windowId === undefined) {
+                responseCallback({dataUrl: "", error: "No sender tab/window for capture request"});
+
+                return true;
+            }
+
+            polyfillCaptureVisibleTab(windowId).then((result) => {
+                if (result.success) {
+                    responseCallback({dataUrl: result.dataUrl});
+                } else {
+                    console.error(result.error);
+                    responseCallback({dataUrl: "", error: result.error});
+                }
+            });
 
             return true;
+        }
 
         default:
             console.error("Unknown request type:", request.type);
@@ -107,7 +113,11 @@ browser.runtime.onConnect.addListener((port: any) => {
         port.onMessage.addListener(async (data: unknown) => {
             if (isFetchAiResponseMessageData(data)) {
                 try {
-                    const stream = OllamaService.getInstance().fetchAIResponse(data.messages, data.model);
+                    const stream = OllamaService.getInstance().fetchAIResponse(
+                        data.messages,
+                        data.model,
+                        {think: data.think, temperature: data.temperature}
+                    );
 
                     for await (const part of stream) {
                         port.postMessage(part);

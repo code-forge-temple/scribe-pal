@@ -7,7 +7,7 @@
 
 import {browser} from "../common/browser";
 import {MESSAGE_TYPES} from "../common/constants";
-import {Model} from "../tab/utils/types";
+import {LlmModel} from "../tab/services/ollamaService/types";
 import "./popup.scss";
 
 
@@ -44,8 +44,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (response && response.models) {
                     const {defaultLlm} = await browser.storage.local.get("defaultLlm");
                     const defaultLlmSelect = document.getElementById("default-llm") as HTMLSelectElement;
-                    const models: Model[] = response.models;
-                    const defaultLlmOptions = models.map((model: Model) => {
+                    const models: LlmModel[] = response.models;
+                    const defaultLlmOptions = models.map((model: LlmModel) => {
                         const option = document.createElement("option");
 
                         option.value = model.name;
@@ -94,7 +94,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     browser.storage.local.get(["ollamaHost", "activeTheme"], (result: any) => {
         const ollamaUrl = document.getElementById("ollama-url") as HTMLInputElement;
-        const toggle = document.getElementById("dark-theme-toggle") as HTMLImageElement | null;
+        const toggle = document.getElementById("dark-theme-toggle") as HTMLInputElement | null;
         const status = document.getElementById("dark-theme-status") as HTMLSpanElement | null;
         let darkThemeActive = result.activeTheme === "dark";
 
@@ -102,38 +102,29 @@ document.addEventListener("DOMContentLoaded", () => {
             ollamaUrl.value = result.ollamaHost;
         }
 
-        if (darkThemeActive) {
-            document.body.classList.add("dark-theme");
+        const renderTheme = () => {
+            document.body.classList.toggle("dark-theme", darkThemeActive);
 
-            if (toggle) toggle.src = "assets/switch-on.svg";
-            if (status) status.textContent = "On";
-        } else {
-            document.body.classList.remove("dark-theme");
+            if (toggle) toggle.checked = darkThemeActive;
+            if (status) status.textContent = darkThemeActive ? "On" : "Off";
+        };
 
-            if (toggle) toggle.src = "assets/switch-off.svg";
-            if (status) status.textContent = "Off";
-        }
+        const setDarkTheme = (active: boolean) => {
+            darkThemeActive = active;
 
-        if (toggle && status) {
-            toggle.addEventListener("click", () => {
-                darkThemeActive = !darkThemeActive;
-                toggle.src = darkThemeActive ? "assets/switch-on.svg" : "assets/switch-off.svg";
-                status.textContent = darkThemeActive ? "On" : "Off";
+            renderTheme();
 
-                if (darkThemeActive) {
-                    document.body.classList.add("dark-theme");
-                } else {
-                    document.body.classList.remove("dark-theme");
-                }
+            browser.storage.local.set({activeTheme: darkThemeActive ? "dark" : "light"});
 
-                browser.storage.local.set({activeTheme: darkThemeActive ? "dark" : "light"});
-
-                browser.runtime.sendMessage({
-                    type: MESSAGE_TYPES.ACTION_UPDATE_THEME,
-                    theme: darkThemeActive ? "dark" : "light",
-                });
+            browser.runtime.sendMessage({
+                type: MESSAGE_TYPES.ACTION_UPDATE_THEME,
+                theme: darkThemeActive ? "dark" : "light",
             });
-        }
+        };
+
+        renderTheme();
+
+        toggle?.addEventListener("change", (e) => setDarkTheme((e.target as HTMLInputElement).checked));
     });
 });
 

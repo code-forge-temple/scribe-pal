@@ -40,6 +40,8 @@ export const RichTextArea = withShadowStyles(({
         <div className={`rich-text-area ${className || ""}`}>
             <textarea
                 placeholder={placeholder}
+                name="text"
+                aria-label={placeholder || "Text"}
                 ref={textareaRef}
                 className={`${className} ${(singleLine ? "textarea-single-line" : "textarea")}`}
                 value={value}

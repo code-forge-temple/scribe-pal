@@ -70,6 +70,8 @@ export const FilesModal = withShadowStyles(({
                 </ul>
                 <textarea
                     className={"textarea"}
+                    name="fileContent"
+                    aria-label="File content"
                     value={selectedFile ? selectedFile.content : ""}
                     readOnly={true}
                 />

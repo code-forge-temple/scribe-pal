@@ -8,6 +8,8 @@
 export const PRIVILEGED_API = {
     BROWSER_STORAGE_LOCAL_GET: "browser.storage.local.get",
     BROWSER_STORAGE_LOCAL_SET: "browser.storage.local.set",
+    BROWSER_STORAGE_ON_CHANGED: "browser.storage.onChanged",
+    BROWSER_STORAGE_ON_CHANGED_UNSUBSCRIBE: "browser.storage.onChanged.unsubscribe",
     BROWSER_RUNTIME_SEND_MESSAGE: "browser.runtime.sendMessage",
     BROWSER_RUNTIME_CONNECT: "browser.runtime.connect",
     GET_TAB_STORAGE: "getTabStorage",

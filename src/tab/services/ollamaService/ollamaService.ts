@@ -6,23 +6,10 @@
  ************************************************************************/
 
 import {Ollama} from "ollama/browser";
-import {browser} from "../../common/browser";
-import {ErrorResponse, FetchAiResponse, FetchModelResponse, Message} from "../utils/types";
+import {browser} from "../../../common/browser";
+import {ErrorResponse, FetchAiResponse, FetchModelResponse, Message} from "../../utils/types";
+import {DeleteModelResponse, FetchModelsResponse} from "./types";
 
-
-type OllamaModel = {
-    name: string;
-}
-
-type FetchModelsResponse = {
-    success: true;
-    models: OllamaModel[];
-} | ErrorResponse;
-
-type DeleteModelResponse = {
-    success: true;
-    reply: string;
-} | ErrorResponse;
 
 export class OllamaService {
     static #instance: OllamaService | null = null;
@@ -80,7 +67,8 @@ export class OllamaService {
 
     async *fetchAIResponse (
         messages: Message[],
-        model: string
+        model: string,
+        settings?: {think?: boolean; temperature?: number}
     ): AsyncGenerator<FetchAiResponse, void, unknown> {
         try {
             const ollama = await this.getOllama();
@@ -89,23 +77,39 @@ export class OllamaService {
                 content: message.content.replace(/!\[.*?\]\(data:image\/\w+;base64,([^)]+)\)/g, "attached image"),
                 images: extractImages(message.content)
             }));
-            const stream = await ollama.chat({model, messages: updatedMessages, stream: true, keep_alive: "60m"});
+            const stream = await ollama.chat({
+                model,
+                messages: updatedMessages,
+                stream: true,
+                keep_alive: "60m",
+                // Only attach `think` when explicitly enabled — `think: false` returns HTTP 400
+                // on models with no thinking support.
+                ...(settings?.think ? {think: true} : {}),
+                ...(settings?.temperature !== undefined ? {options: {temperature: settings.temperature}} : {})
+            });
             let fullReply = "";
+            let fullThinking = "";
 
             for await (const part of stream) {
+                if (part.message.thinking) {
+                    fullThinking += part.message.thinking;
+                }
+
                 fullReply += part.message.content;
 
                 yield {
                     success: true,
                     final: false,
-                    reply: fullReply
+                    reply: fullReply,
+                    thinking: fullThinking || undefined
                 };
             }
 
             yield {
                 success: true,
                 final: true,
-                reply: fullReply
+                reply: fullReply,
+                thinking: fullThinking || undefined
             };
         } catch (error) {
             console.error("Error fetching AI response:", error);

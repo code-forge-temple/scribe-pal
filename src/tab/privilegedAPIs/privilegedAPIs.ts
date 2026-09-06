@@ -8,7 +8,7 @@
 import {browser, getManifestVersion} from "../../common/browser";
 import {decrypt, windowPostEncryptedMessage} from "../utils/encryption";
 import {getTabStorage, setTabStorage} from "../utils/storageHelper";
-import {MessageData, MessageResponse, RuntimeConnectParams} from "../utils/types";
+import {ErrorResponse, MessageData, MessageResponse, RuntimeConnectParams, StorageChanges} from "../utils/types";
 import {generateUniqueId, runtimeConnect} from "../utils/utils";
 import {PRIVILEGED_API} from "./constants";
 import {
@@ -18,6 +18,7 @@ import {
     isBrowserRuntimeSendMessageResponse,
     isBrowserStorageLocalGetResponse,
     isBrowserStorageLocalSetResponse,
+    isBrowserStorageOnChangedResponse,
     isGetTabStorageResponse,
     isSetTabStorageResponse
 } from "./types";
@@ -72,6 +73,61 @@ export const polyfillStorageLocalSet = async (payload: Record<string, any>): Pro
                 payload
             }, "payload");
         });
+    }
+};
+
+// Subscribe to `storage.local` changes for `key`; returns an unsubscribe function. Long-lived
+// like `polyfillRuntimeConnect`, so the MV2 branch tags its request with a `subscriptionId` and
+// tears the contentReceiver-side listener down again on unsubscribe.
+export const polyfillStorageOnChanged = (key: string | string[], listener: (changes: StorageChanges) => void): (() => void) => {
+    const keys = Array.isArray(key) ? key : [key];
+    const pickSubscribed = (changes: StorageChanges) => Object.fromEntries(
+        Object.entries(changes).filter(([changedKey]) => keys.includes(changedKey))
+    );
+
+    if (browser && browser.storage?.onChanged?.addListener) {
+        const wrapped = (changes: StorageChanges, areaName: string) => {
+            if (areaName !== "local") return;
+
+            const subscribed = pickSubscribed(changes);
+
+            if (Object.keys(subscribed).length > 0) listener(subscribed);
+        };
+
+        browser.storage.onChanged.addListener(wrapped);
+
+        return () => browser.storage.onChanged.removeListener(wrapped);
+    } else {
+        const subscriptionId = generateUniqueId();
+        const wrapped = (event: MessageEvent<EventDataResponse>) => {
+            if(!isBrowserStorageOnChangedResponse(event.data)) return;
+
+            const {subscriptionId: refSubscriptionId, response: encryptedResponse} = event.data;
+
+            if (refSubscriptionId === subscriptionId) {
+                decrypt<StorageChanges>(encryptedResponse).then(listener);
+            }
+        };
+
+        window.addEventListener("message", wrapped);
+
+        windowPostEncryptedMessage({
+            type: PRIVILEGED_API.BROWSER_STORAGE_ON_CHANGED,
+            payload: {key},
+            subscriptionId
+        }, "payload");
+
+        return () => {
+            window.removeEventListener("message", wrapped);
+
+            window.postMessage(
+                {
+                    type: PRIVILEGED_API.BROWSER_STORAGE_ON_CHANGED_UNSUBSCRIBE,
+                    subscriptionId
+                },
+                "*"
+            );
+        };
     }
 };
 
@@ -185,6 +241,16 @@ export async function polyfillScriptingExecuteScript (
         throw new Error("No supported API to execute script");
     }
 }
+
+export const polyfillCaptureVisibleTab = async (windowId: number): Promise<{success: true; dataUrl: string} | ErrorResponse> => {
+    try {
+        const dataUrl = await browser.tabs.captureVisibleTab(windowId, {format: "png"});
+
+        return {success: true, dataUrl};
+    } catch (error) {
+        return {success: false, error: error instanceof Error ? error.message : String(error)};
+    }
+};
 
 export const polyfillRuntimeConnect = <D extends keyof MessageData>({name, data, onMessage}: RuntimeConnectParams<D>) => {
     if (getManifestVersion() === 3) {

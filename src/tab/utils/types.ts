@@ -12,10 +12,7 @@ export type ChatMessage = {
     sender: string;
     text: string;
     loading?: boolean;
-}
-
-export type Model = {
-    name: string;
+    thinking?: string;
 }
 
 export type ChatBoxIds = {
@@ -39,7 +36,7 @@ export type FetchModelResponse =
     | ErrorResponse;
 
 export type FetchAiResponse =
-    | {success: true; reply: string; final: boolean}
+    | {success: true; reply: string; final: boolean; thinking?: string}
     | ErrorResponse;
 
 export type MessageData = {
@@ -51,6 +48,8 @@ export type MessageData = {
         type: typeof MESSAGE_TYPES.FETCH_AI_RESPONSE;
         messages: Message[];
         model: string;
+        think?: boolean;
+        temperature?: number;
     };
 }
 
@@ -89,6 +88,10 @@ export const isFetchAiResponseMessageData = (data: unknown): data is MessageData
 
     if(!("messages" in data) || !isMessages(data["messages"])) return false;
 
+    if("think" in data && typeof (data as {think?: unknown})["think"] !== "boolean") return false;
+
+    if("temperature" in data && typeof (data as {temperature?: unknown})["temperature"] !== "number") return false;
+
     return true;
 }
 
@@ -103,6 +106,8 @@ export type RuntimeConnectParams<T extends keyof MessageData> = {
     onMessage: (response: MessageResponse[T]) => void;
     onDisconnect?: () => void;
 };
+
+export type StorageChanges = Record<string, {oldValue?: any; newValue?: any}>;
 
 export type FileData = {
     name: string;

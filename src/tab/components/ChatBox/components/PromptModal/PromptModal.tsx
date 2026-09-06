@@ -12,7 +12,7 @@ import {RichTextArea} from "../RichTextArea";
 import DeleteSvg from '../../../../assets/bin-full.svg';
 import AddSvg from '../../../../assets/floppy-disk.svg';
 import {Tooltip} from "../Tooltip";
-import {polyfillStorageLocalGet, polyfillStorageLocalSet} from "../../../../privilegedAPIs/privilegedAPIs";
+import {useGlobalStorage} from "../../../../hooks";
 
 type PromptItem = {
     id: string;
@@ -40,17 +40,9 @@ export const PromptModal = withShadowStyles(({
     closeButtonName = "Save",
 }: PromptModalProps) => {
     const [text, setText] = useState(prompt);
-    const [prompts, setPrompts] = useState<PromptItem[]>([]);
+    const [prompts, setPrompts] = useGlobalStorage<PromptItem[]>(PROMPTS_STORAGE_KEY, []);
     const [selectedPromptId, setSelectedPromptId] = useState<string>("");
     const [newPromptTitle, setNewPromptTitle] = useState<string>("");
-
-    useEffect(() => {
-        polyfillStorageLocalGet(PROMPTS_STORAGE_KEY).then((result) => {
-            if (result[PROMPTS_STORAGE_KEY]) {
-                setPrompts(result[PROMPTS_STORAGE_KEY]);
-            }
-        });
-    }, []);
 
     useEffect(() => {
         if (visible) {
@@ -79,11 +71,6 @@ export const PromptModal = withShadowStyles(({
         }
     }, [selectedPromptId, prompts, prompt]);
 
-    const persistPrompts = (list: PromptItem[]) => {
-        setPrompts(list);
-        polyfillStorageLocalSet({[PROMPTS_STORAGE_KEY]: list});
-    };
-
     const handleAddUpdatePrompt = () => {
         if (!newPromptTitle.trim()) {
             return;
@@ -96,7 +83,7 @@ export const PromptModal = withShadowStyles(({
                     : p
             );
 
-            persistPrompts(updated);
+            setPrompts(updated);
         } else {
             const newPrompt: PromptItem = {
                 id: generateId(),
@@ -105,7 +92,7 @@ export const PromptModal = withShadowStyles(({
             };
             const updated = [...prompts, newPrompt];
 
-            persistPrompts(updated);
+            setPrompts(updated);
             setSelectedPromptId(newPrompt.id);
         }
 
@@ -138,7 +125,7 @@ export const PromptModal = withShadowStyles(({
 
                                     const updated = prompts.filter(pr => pr.id !== p.id);
 
-                                    persistPrompts(updated);
+                                    setPrompts(updated);
 
                                     if (selectedPromptId === p.id) {
                                         setSelectedPromptId("");

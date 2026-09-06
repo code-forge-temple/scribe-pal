@@ -96,6 +96,8 @@ export const ChatInput = withShadowStyles(({message, onMessageChange, onSend, di
             <textarea
                 ref={inputRef}
                 rows={1}
+                name="message"
+                aria-label="Message"
                 placeholder="Type your message..."
                 value={message}
                 disabled={disabled}

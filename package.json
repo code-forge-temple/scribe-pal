@@ -17,7 +17,7 @@
     },
     "dependencies": {
         "crypto-browserify": "^3.12.1",
-        "ollama": "^0.5.12",
+        "ollama": "^0.6.3",
         "path-browserify": "^1.0.1",
         "react": "^19.0.0",
         "react-dom": "^19.0.0",
@@ -38,7 +38,7 @@
         "@types/react-syntax-highlighter": "^15.5.13",
         "babel-loader": "^9.2.1",
         "concurrently": "^9.2.1",
-        "copy-webpack-plugin": "^12.0.2",
+        "copy-webpack-plugin": "^14.0.0",
         "css-loader": "^7.1.2",
         "eslint": "^9.39.2",
         "eslint-plugin-react-hooks": "^5.1.0",

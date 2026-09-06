@@ -105,28 +105,39 @@ export function startCaptureImage (onCaptureImageFinished: OnCaptureImageFinishe
             const response = await polyfillRuntimeSendMessage({type: MESSAGE_TYPES.CAPTURE_VISIBLE_TAB});
 
             if (response && response.dataUrl) {
-                const fullImage = new Image();
+                try {
+                    // Decode via a Blob instead of new Image()/img.src, which is
+                    // subject to the page's CSP img-src.
+                    const bitmap = await dataUrlToImageBitmap(response.dataUrl);
 
-                fullImage.src = response.dataUrl;
-                fullImage.onload = () => {
                     const croppedCanvas = document.createElement("canvas");
 
-                    croppedCanvas.width = rectWidth;
-                    croppedCanvas.height = rectHeight;
+                    // Scale CSS-pixel rect to the screenshot's physical-pixel size
+                    // (also covers browser zoom, since both scale together).
+                    const scaleX = bitmap.width / window.innerWidth;
+                    const scaleY = bitmap.height / window.innerHeight;
+
+                    const sourceX = rectLeft * scaleX;
+                    const sourceY = rectTop * scaleY;
+                    const sourceWidth = rectWidth * scaleX;
+                    const sourceHeight = rectHeight * scaleY;
+
+                    croppedCanvas.width = sourceWidth;
+                    croppedCanvas.height = sourceHeight;
 
                     const ctx = croppedCanvas.getContext("2d");
 
                     if (ctx) {
                         ctx.drawImage(
-                            fullImage,
-                            rectLeft,
-                            rectTop,
-                            rectWidth,
-                            rectHeight,
+                            bitmap,
+                            sourceX,
+                            sourceY,
+                            sourceWidth,
+                            sourceHeight,
                             0,
                             0,
-                            rectWidth,
-                            rectHeight
+                            sourceWidth,
+                            sourceHeight
                         );
 
                         const rawBase64Image = croppedCanvas.toDataURL("image/png");
@@ -135,13 +146,16 @@ export function startCaptureImage (onCaptureImageFinished: OnCaptureImageFinishe
                     } else {
                         onCaptureImageFinished("");
                     }
-                };
-                fullImage.onerror = () => {
-                    console.error("Error loading captured image.");
+
+                    bitmap.close();
+                } catch (error) {
+                    console.error("Error decoding captured image:", error);
 
                     onCaptureImageFinished("");
-                };
+                }
             } else {
+                console.error("Capture failed:", (response && response.error) || "no dataUrl in response");
+
                 onCaptureImageFinished("");
             }
         } catch (error) {
@@ -152,4 +166,19 @@ export function startCaptureImage (onCaptureImageFinished: OnCaptureImageFinishe
     };
 
     overlay.addEventListener("mousedown", mouseDownHandler, {once: true});
+}
+
+// Decodes a base64 data URL into an ImageBitmap, bypassing CSP img-src.
+async function dataUrlToImageBitmap (dataUrl: string): Promise<ImageBitmap> {
+    const [header, base64] = dataUrl.split(",");
+    const mimeMatch = /data:(.*?);base64/.exec(header);
+    const mime = mimeMatch ? mimeMatch[1] : "image/png";
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+
+    for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+    }
+
+    return createImageBitmap(new Blob([bytes], {type: mime}));
 }

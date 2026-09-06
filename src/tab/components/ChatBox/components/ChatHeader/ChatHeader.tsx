@@ -6,10 +6,12 @@
  ************************************************************************/
 
 import React, {useEffect, useState} from 'react';
-import {Model} from '../../../../utils/types';
+import {LlmModel} from '../../../../services/ollamaService/types';
 import {EXTENSION_NAME, MESSAGE_TYPES} from '../../../../../common/constants';
 import {NewModelModal} from '../NewModelModal';
+import {LlmSettingsModal} from '../LlmSettingsModal';
 import DeleteModelSvg from '../../../../assets/bin-full.svg';
+import SettingsSvg from '../../../../assets/settings.svg';
 import {Tooltip} from '../Tooltip/Tooltip';
 import {polyfillRuntimeConnect, polyfillStorageLocalGet} from '../../../../privilegedAPIs/privilegedAPIs';
 import styles from "./ChatHeader.scss?inline";
@@ -19,7 +21,7 @@ import {browser} from '../../../../../common/browser';
 
 type ChatHeaderProps = {
     selectedModel: string;
-    models: Model[];
+    models: LlmModel[];
     isMinimized: boolean;
     isExpanded: boolean;
     onModelSelect: (model: string) => void;
@@ -52,6 +54,7 @@ export const ChatHeader = withShadowStyles(({
     onClose,
 }: ChatHeaderProps) => {
     const [newModelModalVisible, setNewModelModalVisible] = useState<boolean>(false);
+    const [settingsModalVisible, setSettingsModalVisible] = useState<boolean>(false);
     const [newModel, setNewModel] = useState<string>("");
     const [isModelDownloading, setIsModelDownloading] = useState<boolean>(false);
     const [modelDownloadedPercentage, setModelDownloadedPercentage] = useState<number>(0);
@@ -124,7 +127,14 @@ export const ChatHeader = withShadowStyles(({
                             <DeleteModelSvg className='delete-model' onClick={() => { onModelDelete(selectedModel) }} />
                         </Tooltip>
                     ) : null}
-                    <select className="prevent-select"
+                    {selectedModel ? (
+                        <Tooltip text='Model settings'>
+                            <SettingsSvg className='settings-model' onClick={() => setSettingsModalVisible(true)} />
+                        </Tooltip>
+                    ) : null}
+                    <select className={`prevent-select${isExpanded ? " expanded" : ""}`}
+                        name="model"
+                        aria-label="Select model"
                         value={selectedModel}
                         onChange={(e) => {
                             const selectedModel = e.target.value;
@@ -144,7 +154,7 @@ export const ChatHeader = withShadowStyles(({
                         onMouseDown={(e) => e.stopPropagation()}
                     >
                         <option value="" disabled>Select a model...</option>
-                        {models.map((model: Model, index: number) => (
+                        {models.map((model: LlmModel, index: number) => (
                             <option key={index} value={model.name}>
                                 {model.name}
                             </option>
@@ -184,6 +194,11 @@ export const ChatHeader = withShadowStyles(({
                 richText={newModel}
                 onUpdate={onModelDownload}
                 closeButtonName="Download"
+            />
+            <LlmSettingsModal
+                visible={settingsModalVisible}
+                modelName={selectedModel}
+                onClose={() => setSettingsModalVisible(false)}
             />
         </>
     );

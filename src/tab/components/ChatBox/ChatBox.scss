@@ -5,7 +5,9 @@
 
 .chat-box {
     @include mixins.modal-window;
-    width: vars.$default-modal-width;
+    width: vars.$default-chatbox-width;
+    // Stay short of the viewport — a full-height box makes useKeepInViewport vibrate.
+    max-height: calc(100% - 3px);
     top: 100px;
     left: 100px;
     transform: none;

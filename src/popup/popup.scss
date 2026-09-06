@@ -66,15 +66,59 @@ $extra-settings-items: 2; // TODO: if we add more settings, we need to update th
     max-height: 0;
 }
 
-.theme-selection {
-    #dark-theme-toggle {
-        cursor: pointer;
-        margin-left: 10px;
-        height: 37px;
+// CSS toggle, shared with the in-chat settings (codepen ndzGXm "slider-v1" style).
+.toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 10px;
+    cursor: pointer;
+
+    .toggle-input {
+        position: absolute;
+        left: -9999px;
     }
 
-    #dark-theme-status {
-        margin-left: 5px;
+    .toggle-status {
+        display: inline-block;
+        min-width: 22px;
+    }
+
+    .toggle-track {
+        font-size: 10px;
+        position: relative;
+        display: block;
+        flex-shrink: 0;
+        box-sizing: border-box;
+        width: 5.5em;
+        height: 3em;
+        border-radius: 1.5em;
+        transition: 350ms;
+        background: linear-gradient(rgba(0, 0, 0, 0.07), rgba(255, 255, 255, 0)), #ddd;
+
+        &::before {
+            position: absolute;
+            content: "";
+            box-sizing: border-box;
+            width: 2em;
+            height: 2em;
+            top: 0.5em;
+            left: 0.5em;
+            border-radius: 50%;
+            transition: 250ms ease-in-out;
+            background: linear-gradient(#f5f5f5 10%, #eee);
+            box-shadow:
+                0 0.1em 0.15em -0.05em rgba(255, 255, 255, 0.9) inset,
+                0 0.5em 0.3em -0.1em rgba(0, 0, 0, 0.25);
+        }
+    }
+
+    .toggle-input:checked + .toggle-track {
+        background: linear-gradient(rgba(0, 0, 0, 0.07), rgba(255, 255, 255, 0.1)), #0078d7;
+
+        &::before {
+            left: 3em;
+        }
     }
 }
 
@@ -119,6 +163,10 @@ $extra-settings-items: 2; // TODO: if we add more settings, we need to update th
 .dark-theme {
     background: vars.$dark-theme-primary-color;
     color: white;
+
+    .toggle .toggle-track {
+        background: linear-gradient(rgba(0, 0, 0, 0.2), rgba(255, 255, 255, 0)), #555;
+    }
 
     .menu-item,
     .menu-item-short {
