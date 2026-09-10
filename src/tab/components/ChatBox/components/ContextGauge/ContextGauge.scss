@@ -1,0 +1,9 @@
+// Sits after the select, so its gap goes left; ChatHeader.scss excludes it from the
+// shared icon rule via `svg:not(.context-gauge)`.
+.context-gauge {
+    display: block;
+    height: 21px;
+    width: 21px;
+    margin-left: 5px;
+    cursor: default;
+}

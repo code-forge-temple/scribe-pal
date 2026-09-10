@@ -36,8 +36,16 @@ export type FetchModelResponse =
     | ErrorResponse;
 
 export type FetchAiResponse =
-    | {success: true; reply: string; final: boolean; thinking?: string}
+    | {success: true; reply: string; final: boolean; thinking?: string; promptEvalCount?: number; evalCount?: number}
     | ErrorResponse;
+
+// Tagged with the model that produced it: counts aren't comparable across tokenizers, so a
+// reading is only meaningful while that model stays selected.
+export type ContextUsage = {
+    model: string;
+    promptTokens: number;
+    replyTokens: number;
+}
 
 export type MessageData = {
     [MESSAGE_TYPES.FETCH_MODEL]: {
@@ -50,6 +58,7 @@ export type MessageData = {
         model: string;
         think?: boolean;
         temperature?: number;
+        numCtx?: number;
     };
 }
 
@@ -91,6 +100,8 @@ export const isFetchAiResponseMessageData = (data: unknown): data is MessageData
     if("think" in data && typeof (data as {think?: unknown})["think"] !== "boolean") return false;
 
     if("temperature" in data && typeof (data as {temperature?: unknown})["temperature"] !== "number") return false;
+
+    if("numCtx" in data && typeof (data as {numCtx?: unknown})["numCtx"] !== "number") return false;
 
     return true;
 }

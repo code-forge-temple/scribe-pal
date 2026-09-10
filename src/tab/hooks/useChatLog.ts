@@ -9,7 +9,8 @@ import {useState, useEffect, useCallback} from 'react';
 import {EXTENSION_NAME} from '../../common/constants';
 import {ChatBoxIds, ChatMessage} from '../utils/types';
 import {generateUniqueId} from '../utils/utils';
-import {polyfillGetTabStorage, polyfillSetTabStorage} from '../privilegedAPIs/privilegedAPIs';
+import {polyfillGetTabStorage} from '../privilegedAPIs/privilegedAPIs';
+import {updateChatBoxStorage} from '../utils/tabStorage';
 
 export type Sender = "user" | typeof EXTENSION_NAME;
 
@@ -50,12 +51,8 @@ export const useChatLog = ({tabId, chatBoxId}: ChatBoxIds) => {
     }, [tabId, chatBoxId]);
 
     const persistChatLog = useCallback((log: ChatMessage[]) => {
-        polyfillGetTabStorage(tabId).then((currentTab) => {
-            currentTab.chatBoxes = currentTab.chatBoxes || {};
-            currentTab.chatBoxes[chatBoxId] = currentTab.chatBoxes[chatBoxId] || {};
-            currentTab.chatBoxes[chatBoxId]["chatBoxChatLog"] = log;
-
-            polyfillSetTabStorage(tabId, currentTab);
+        updateChatBoxStorage({tabId, chatBoxId}, (chatBoxStorage) => {
+            chatBoxStorage["chatBoxChatLog"] = log;
         });
     }, [tabId, chatBoxId]);
 

@@ -13,6 +13,7 @@ export const MESSAGE_TYPES = {
     ACTION_UPDATE_THEME: "actionUpdateTheme",
     FETCH_MODELS: "fetchModels",
     FETCH_MODEL: "fetchModel",
+    FETCH_MODEL_CONTEXT_LENGTH: "fetchModelContextLength",
     FETCH_AI_RESPONSE: "fetchAIResponse",
     ABORT_AI_RESPONSE: "abortAIResponse",
     CAPTURE_HTML: "captureHtml",

@@ -7,7 +7,8 @@
 
 import {useState, useEffect, useCallback} from "react";
 import {ChatBoxIds} from "../utils/types";
-import {polyfillGetTabStorage, polyfillSetTabStorage} from "../privilegedAPIs/privilegedAPIs";
+import {polyfillGetTabStorage} from "../privilegedAPIs/privilegedAPIs";
+import {updateChatBoxStorage} from "../utils/tabStorage";
 
 export function usePersistentState<T> (
     key: string,
@@ -26,11 +27,9 @@ export function usePersistentState<T> (
     }, [tabId, chatBoxId, key]);
 
     const persistState = useCallback(async () => {
-        const currentTab = await polyfillGetTabStorage(tabId);
-        currentTab.chatBoxes[chatBoxId] = currentTab.chatBoxes[chatBoxId] || {};
-        currentTab.chatBoxes[chatBoxId][key] = state;
-
-        await polyfillSetTabStorage(tabId, currentTab);
+        await updateChatBoxStorage({tabId, chatBoxId}, (chatBoxStorage) => {
+            chatBoxStorage[key] = state;
+        });
     }, [tabId, chatBoxId, key, state]);
 
     useEffect(() => {

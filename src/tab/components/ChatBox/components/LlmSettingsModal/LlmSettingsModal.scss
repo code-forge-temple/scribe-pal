@@ -97,6 +97,10 @@
             text-align: right;
             font-variant-numeric: tabular-nums;
         }
+
+        &.num-ctx-slider-wrap .slider-value {
+            min-width: 62px;
+        }
     }
 
     .modal-buttons {

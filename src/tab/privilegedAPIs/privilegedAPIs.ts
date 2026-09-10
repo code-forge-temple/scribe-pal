@@ -252,9 +252,9 @@ export const polyfillCaptureVisibleTab = async (windowId: number): Promise<{succ
     }
 };
 
-export const polyfillRuntimeConnect = <D extends keyof MessageData>({name, data, onMessage}: RuntimeConnectParams<D>) => {
+export const polyfillRuntimeConnect = <D extends keyof MessageData>({name, data, onMessage, onDisconnect}: RuntimeConnectParams<D>) => {
     if (getManifestVersion() === 3) {
-        runtimeConnect({name, data, onMessage});
+        runtimeConnect({name, data, onMessage, onDisconnect});
     } else {
         const portId = generateUniqueId();
         const listener = (event: MessageEvent<EventDataResponse>) => {
@@ -268,6 +268,8 @@ export const polyfillRuntimeConnect = <D extends keyof MessageData>({name, data,
                 }
             } else if(isBrowserRuntimeConnectResponseDisconnect(event.data)) {
                 window.removeEventListener("message", listener);
+
+                if (onDisconnect) onDisconnect();
             }
         };
 

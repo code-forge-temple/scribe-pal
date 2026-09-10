@@ -5,10 +5,10 @@
  *    See the LICENSE file in the project root for more information.    *
  ************************************************************************/
 
-import {Ollama} from "ollama/browser";
+import {Ollama, Options} from "ollama/browser";
 import {browser} from "../../../common/browser";
 import {ErrorResponse, FetchAiResponse, FetchModelResponse, Message} from "../../utils/types";
-import {DeleteModelResponse, FetchModelsResponse} from "./types";
+import {DeleteModelResponse, FetchModelContextLengthResponse, FetchModelsResponse} from "./types";
 
 
 export class OllamaService {
@@ -68,7 +68,7 @@ export class OllamaService {
     async *fetchAIResponse (
         messages: Message[],
         model: string,
-        settings?: {think?: boolean; temperature?: number}
+        settings?: {think?: boolean; temperature?: number; numCtx?: number}
     ): AsyncGenerator<FetchAiResponse, void, unknown> {
         try {
             const ollama = await this.getOllama();
@@ -77,18 +77,33 @@ export class OllamaService {
                 content: message.content.replace(/!\[.*?\]\(data:image\/\w+;base64,([^)]+)\)/g, "attached image"),
                 images: extractImages(message.content)
             }));
+            // Built as one object rather than two conditional `{options: ...}` spreads,
+            // which would overwrite each other key-for-key.
+            const options: Partial<Options> = {};
+
+            if (settings?.temperature !== undefined) {
+                options.temperature = settings.temperature;
+            }
+
+            if (settings?.numCtx !== undefined) {
+                options.num_ctx = settings.numCtx;
+            }
+
             const stream = await ollama.chat({
                 model,
                 messages: updatedMessages,
                 stream: true,
                 keep_alive: "60m",
-                // Only attach `think` when explicitly enabled — `think: false` returns HTTP 400
-                // on models with no thinking support.
-                ...(settings?.think ? {think: true} : {}),
-                ...(settings?.temperature !== undefined ? {options: {temperature: settings.temperature}} : {})
+                // Always explicit: models that think by default (qwen3, deepseek-r1) ignore the
+                // setting if `think` is omitted. `think: false` is accepted by every model;
+                // only `think: true` errors on one with no thinking support.
+                think: settings?.think === true,
+                ...(Object.keys(options).length ? {options} : {})
             });
             let fullReply = "";
             let fullThinking = "";
+            let promptEvalCount: number | undefined;
+            let evalCount: number | undefined;
 
             for await (const part of stream) {
                 if (part.message.thinking) {
@@ -96,6 +111,16 @@ export class OllamaService {
                 }
 
                 fullReply += part.message.content;
+
+                // Only the terminating `done: true` part carries the token counts, and this
+                // loop consumes it — so latch them here for the final yield below.
+                if (typeof part.prompt_eval_count === "number") {
+                    promptEvalCount = part.prompt_eval_count;
+                }
+
+                if (typeof part.eval_count === "number") {
+                    evalCount = part.eval_count;
+                }
 
                 yield {
                     success: true,
@@ -109,7 +134,9 @@ export class OllamaService {
                 success: true,
                 final: true,
                 reply: fullReply,
-                thinking: fullThinking || undefined
+                thinking: fullThinking || undefined,
+                ...(promptEvalCount !== undefined ? {promptEvalCount} : {}),
+                ...(evalCount !== undefined ? {evalCount} : {})
             };
         } catch (error) {
             console.error("Error fetching AI response:", error);
@@ -155,6 +182,35 @@ export class OllamaService {
             };
         } catch (error) {
             console.error("Error deleting model:", error);
+
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : String(error)
+            };
+        }
+    }
+
+    async fetchModelContextLength (model: string): Promise<FetchModelContextLengthResponse> {
+        try {
+            const ollama = await this.getOllama();
+            const {model_info: modelInfo} = await ollama.show({model});
+            // `model_info` is typed as a Map but arrives as a plain object (it comes straight
+            // from `response.json()`), so it has to be indexed rather than `.get()`.
+            const info = modelInfo as unknown as Record<string, any>;
+            const architecture = info?.["general.architecture"];
+            // The key is namespaced by architecture, e.g. "llama.context_length". Fall back to
+            // scanning for the suffix when the model doesn't declare its architecture.
+            const key = typeof architecture === "string"
+                ? `${architecture}.context_length`
+                : Object.keys(info ?? {}).find((infoKey) => infoKey.endsWith(".context_length"));
+            const contextLength = key ? info[key] : undefined;
+
+            return {
+                success: true,
+                contextLength: typeof contextLength === "number" && contextLength > 0 ? contextLength : null
+            };
+        } catch (error) {
+            console.error("Error fetching model context length:", error);
 
             return {
                 success: false,

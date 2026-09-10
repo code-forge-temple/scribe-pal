@@ -13,6 +13,7 @@ import {LlmSettingsModal} from '../LlmSettingsModal';
 import DeleteModelSvg from '../../../../assets/bin-full.svg';
 import SettingsSvg from '../../../../assets/settings.svg';
 import {Tooltip} from '../Tooltip/Tooltip';
+import {ContextGauge} from '../ContextGauge';
 import {polyfillRuntimeConnect, polyfillStorageLocalGet} from '../../../../privilegedAPIs/privilegedAPIs';
 import styles from "./ChatHeader.scss?inline";
 import {withShadowStyles} from '../../../../utils/withShadowStyles';
@@ -32,6 +33,7 @@ type ChatHeaderProps = {
     onModelsRefresh: () => void;
     onModelDelete: (modelName: string) => void;
     onClose: () => void;
+    usedTokens: number;
 }
 
 const SELECT_MODEL_ACTIONS = {
@@ -52,6 +54,7 @@ export const ChatHeader = withShadowStyles(({
     onModelsRefresh,
     onModelDelete,
     onClose,
+    usedTokens,
 }: ChatHeaderProps) => {
     const [newModelModalVisible, setNewModelModalVisible] = useState<boolean>(false);
     const [settingsModalVisible, setSettingsModalVisible] = useState<boolean>(false);
@@ -164,6 +167,7 @@ export const ChatHeader = withShadowStyles(({
                         {!newModel ? <option value={SELECT_MODEL_ACTIONS.NEW}>New...</option> : null}
                         {isModelDownloading ? <option value="" disabled>{`${newModel} [${modelDownloadedPercentage.toString().padStart(2, "0")}%]`}</option> : null}
                     </select>
+                    <ContextGauge modelName={selectedModel} usedTokens={usedTokens} />
                 </div>
                 <div className="header-buttons prevent-select">
                     <button

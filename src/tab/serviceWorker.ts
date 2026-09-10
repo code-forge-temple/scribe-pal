@@ -70,6 +70,17 @@ browser.runtime.onMessage.addListener((
 
             return true;
 
+        case MESSAGE_TYPES.FETCH_MODEL_CONTEXT_LENGTH:
+            if (request.model) {
+                OllamaService.getInstance()
+                    .fetchModelContextLength(request.model)
+                    .then(responseCallback);
+            } else {
+                responseCallback({success: false, error: "No model provided"});
+            }
+
+            return true;
+
         case MESSAGE_TYPES.ABORT_AI_RESPONSE:
             OllamaService.getInstance()
                 .abortAIResponse()
@@ -116,7 +127,7 @@ browser.runtime.onConnect.addListener((port: any) => {
                     const stream = OllamaService.getInstance().fetchAIResponse(
                         data.messages,
                         data.model,
-                        {think: data.think, temperature: data.temperature}
+                        {think: data.think, temperature: data.temperature, numCtx: data.numCtx}
                     );
 
                     for await (const part of stream) {

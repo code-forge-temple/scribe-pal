@@ -7,7 +7,7 @@
 
 import React, {useRef, useEffect, useState, useCallback} from "react";
 import {usePersistentState, useDraggablePosition, useGlobalStorage} from "../../hooks";
-import {ChatBoxIds, FileData} from "../../utils/types";
+import {ChatBoxIds, ContextUsage, FileData} from "../../utils/types";
 import {DeleteModelResponse, FetchModelsResponse, LlmModel} from "../../services/ollamaService/types";
 import {LLM_SETTINGS_STORAGE_KEY, LlmSettingsMap, getModelSettings, withoutModelSettings} from "../../utils/llmSettings";
 import {EXTENSION_NAME, MESSAGE_TYPES} from "../../../common/constants";
@@ -98,6 +98,7 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
     const [promptModalVisible, setPromptModalVisible] = useState<boolean>(false);
 
     const [attachedFiles, setAttachedFiles] = usePersistentState<FileData[]>("attachedFiles", [], {tabId, chatBoxId});
+    const [contextUsage, setContextUsage] = usePersistentState<ContextUsage>("chatBoxContextUsage", {model: "", promptTokens: 0, replyTokens: 0}, {tabId, chatBoxId});
     const [attachedFilesModalVisible, setAttachedFilesModalVisible] = useState<boolean>(false);
 
     const [llmSettingsMap, setLlmSettingsMap] = useGlobalStorage<LlmSettingsMap>(LLM_SETTINGS_STORAGE_KEY, {});
@@ -227,7 +228,12 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
 
         setIsLLMResponding(true);
 
-        const {think, temperatureEnabled, temperature} = getModelSettings(llmSettingsMap, selectedModel);
+        const {think, temperatureEnabled, temperature, numCtxEnabled, numCtx} = getModelSettings(llmSettingsMap, selectedModel);
+
+        // The port closing before a final chunk is a silent failure otherwise — the service
+        // worker being torn down mid-request (a slow model load will do it) looks identical
+        // to the model simply never answering.
+        let settled = false;
 
         polyfillRuntimeConnect({
             name: MESSAGE_TYPES.FETCH_AI_RESPONSE,
@@ -237,9 +243,12 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
                 model: selectedModel,
                 ...(think ? {think: true} : {}),
                 ...(temperatureEnabled ? {temperature} : {}),
+                ...(numCtxEnabled ? {numCtx} : {}),
             },
             onMessage: (response) => {
                 if ("error" in response) {
+                    settled = true;
+
                     setChatLog({
                         text: `${EXTENSION_NAME}: Sorry, there was an error: ${response.error}`,
                         messageId: pendingMessageId,
@@ -249,11 +258,31 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
                     setChatLog({text: response.reply, thinking: response.thinking, messageId: pendingMessageId}, response.final === true);
 
                     if (response.final) {
+                        settled = true;
+
                         setIsLLMResponding(false);
+
+                        if (response.promptEvalCount !== undefined) {
+                            setContextUsage({
+                                model: selectedModel,
+                                promptTokens: response.promptEvalCount,
+                                replyTokens: response.evalCount ?? 0
+                            });
+                        }
                     }
                 }
 
                 setMessage("");
+            },
+            onDisconnect: () => {
+                if (settled) return;
+
+                setChatLog({
+                    text: `${EXTENSION_NAME}: The connection closed before a response arrived.`
+                        + " A slow model load can outlast the service worker — try again, or lower the model's context size.",
+                    messageId: pendingMessageId,
+                });
+                setIsLLMResponding(false);
             },
         });
     };
@@ -301,7 +330,12 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
 
         setIsLLMResponding(true);
 
-        const {think, temperatureEnabled, temperature} = getModelSettings(llmSettingsMap, selectedModel);
+        const {think, temperatureEnabled, temperature, numCtxEnabled, numCtx} = getModelSettings(llmSettingsMap, selectedModel);
+
+        // The port closing before a final chunk is a silent failure otherwise — the service
+        // worker being torn down mid-request (a slow model load will do it) looks identical
+        // to the model simply never answering.
+        let settled = false;
 
         polyfillRuntimeConnect({
             name: MESSAGE_TYPES.FETCH_AI_RESPONSE,
@@ -311,9 +345,12 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
                 model: selectedModel,
                 ...(think ? {think: true} : {}),
                 ...(temperatureEnabled ? {temperature} : {}),
+                ...(numCtxEnabled ? {numCtx} : {}),
             },
             onMessage: (response) => {
                 if ("error" in response) {
+                    settled = true;
+
                     setChatLog({
                         text: `${EXTENSION_NAME}: Sorry, there was an error: ${response.error}`,
                         messageId: pendingMessageId,
@@ -323,9 +360,29 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
                     setChatLog({text: response.reply, thinking: response.thinking, messageId: pendingMessageId}, response.final === true);
 
                     if (response.final) {
+                        settled = true;
+
                         setIsLLMResponding(false);
+
+                        if (response.promptEvalCount !== undefined) {
+                            setContextUsage({
+                                model: selectedModel,
+                                promptTokens: response.promptEvalCount,
+                                replyTokens: response.evalCount ?? 0
+                            });
+                        }
                     }
                 }
+            },
+            onDisconnect: () => {
+                if (settled) return;
+
+                setChatLog({
+                    text: `${EXTENSION_NAME}: The connection closed before a response arrived.`
+                        + " A slow model load can outlast the service worker — try again, or lower the model's context size.",
+                    messageId: pendingMessageId,
+                });
+                setIsLLMResponding(false);
             },
         });
     };
@@ -389,6 +446,9 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
         }
 
         setChatLog({delete: true, messageId});
+
+        // The old count would now read high, and nothing will re-measure until the next send.
+        setContextUsage({model: "", promptTokens: 0, replyTokens: 0});
     };
 
     const handleMinimize = () => { setIsMinimized(!isMinimized); };
@@ -462,6 +522,7 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
                 onExpand={handleExpand}
                 onMinimize={handleMinimize}
                 onClose={handleClose}
+                usedTokens={contextUsage.model === selectedModel ? contextUsage.promptTokens + contextUsage.replyTokens : 0}
             />
             {!isMinimized && (
                 <>

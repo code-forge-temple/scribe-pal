@@ -50,8 +50,9 @@ It is compatible with all Chromium and Gecko-based browsers: Chrome, Vivaldi, Op
 - **Theming:** Supports light and dark themes.
 - **Chat Interface:** A draggable chat box for sending and receiving messages.
 - **Model Management:** Select, refresh, download, and delete models.
-- **Per-Model Settings:** Fine-tune each model individually via the ⚙️ icon next to the model selector — enable **Thinking** for reasoning-capable models and override the sampling **Temperature** (0–2). Settings are saved per model and shared across every tab and chat box.
+- **Per-Model Settings:** Fine-tune each model individually via the ⚙️ icon next to the model selector — enable **Thinking** for reasoning-capable models, override the sampling **Temperature** (0–2), and set the **Context size** (`num_ctx`), bounded by the maximum the model itself reports. Settings are saved per model and shared across every tab and chat box.
 - **Reasoning Visibility:** When a model streams its reasoning, it's shown live in a collapsible "Thought process" panel above the answer.
+- **Context Usage Gauge:** A circular indicator to the right of the model selector shows how much of the context window the conversation is using, based on the exact token counts Ollama reports for the last response. It shifts from green to amber to red as the window fills.
 - **Advanced Capture Tools:** Options for capturing both text and images are available. Captured content is inserted directly into your chat using special tags (`@captured-text` for text and `@captured-image` for images).
 - **Prompt Customization:** Adjust and customize prompts to instruct the AI model on how to generate responses.
 - **File Attachments:** Upload files to the chat interface and reference them in discussions using the `@attached-files` tag.
@@ -233,12 +234,18 @@ To install the the compiled extension, for:
    - Use the chat interface to send messages to the Ollama AI service, review conversation history, and manage models.
    - Additional features include capturing selected HTML content (that can be referenced in the discussion with `@captured-text` tag), capturing an image of an area on the page (that can be referenced in the discussion with `@captured-image` tag) for VISION LLMs, and customizing prompts (to instruct the loaded model on how to answer).
    - You can also attach files to the chat using the **Attach Files** button. Uploaded files can be referenced in the discussion using the `@attached-files` tag.
-   - Click the ⚙️ icon next to the model selector to open that model's settings: toggle **Thinking** on for reasoning-capable models, and optionally override the **Temperature** used for sampling.
+   - Click the ⚙️ icon next to the model selector to open that model's settings: toggle **Thinking** on for reasoning-capable models, optionally override the **Temperature** used for sampling, and optionally set the **Context size**.
 
 4. **Reviewing the Model's Reasoning:**
    - For models that support it, the reasoning stream appears above the answer in a collapsible "Thinking… / Thought process" panel — expand it at any time to read the full chain of thought.
 
-5. **Interacting with the Chat:**
+5. **Tracking Context Usage:**
+   - After each response, a small circular gauge appears to the right of the model selector showing how much of the context window the conversation occupies. Hover it for the exact token count and limit.
+   - The figures come from Ollama itself, so they are exact rather than estimated — but they only update once a response completes.
+   - **Note on the limit:** Ollama does not report the context window it actually allocated. Unless you set a **Context size** in the model's settings, it uses its own default and the gauge assumes 4096. If your server sets `OLLAMA_CONTEXT_LENGTH`, or you want the gauge to be exact, set the Context size explicitly — the slider's maximum is the model's real limit, read from Ollama.
+   - When the conversation exceeds the window, the ring turns red: Ollama is silently dropping the oldest messages from that point on.
+
+6. **Interacting with the Chat:**
    - Type your query in the chat input and press Enter or click the `Send` button.
    - The AI response is rendered below the input as markdown.
    - You can manage (delete or refresh) available Ollama models using the available controls in the model select dropdown.
