@@ -25,11 +25,11 @@ jobs:
     steps:
       # Step 1: Checkout the code
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
 
       # Step 2: Set up Node.js using .nvmrc
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
 
@@ -49,35 +49,18 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
-      # Step 5: Create a GitHub Release
+      # Step 5: Archive each folder within dist and publish them as a release
+      # `gh` ships on the runner and errors if the release already exists, so a source
+      # push that forgets to bump the version in package.json fails loudly.
       - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v${{ steps.pkg_version.outputs.VERSION }}
-          release_name: Release v${{ steps.pkg_version.outputs.VERSION }}
-          draft: false
-          prerelease: false
-
-      # Step 6: Archive each folder within dist and upload each as a release asset
-      - name: Archive and Upload Release Assets
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          UPLOAD_URL="${{ steps.create_release.outputs.upload_url }}"
-          UPLOAD_URL="${UPLOAD_URL%\{*}"
           for folder in dist/*/; do
             folder=${folder%/}  # Remove trailing slash
             zip_name="${folder##*/}.zip"
             echo "Zipping contents of $folder into $zip_name"
-            pushd "$folder" > /dev/null
-            zip -r "$GITHUB_WORKSPACE/$zip_name" ./*
-            popd > /dev/null
-            echo "Uploading $zip_name"
-            curl -s --data-binary @"$GITHUB_WORKSPACE/$zip_name" \
-                -H "Content-Type: application/zip" \
-                -H "Authorization: token ${GITHUB_TOKEN}" \
-                "$UPLOAD_URL?name=$(basename "$zip_name")"
+            (cd "$folder" && zip -r "$GITHUB_WORKSPACE/$zip_name" ./*)
           done
+
+          gh release create "v${VERSION}" --title "Release v${VERSION}" --notes "" "$GITHUB_WORKSPACE"/*.zip
