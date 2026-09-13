@@ -77,22 +77,18 @@ export const PromptModal = withShadowStyles(({
         }
 
         if (selectedPromptId) {
-            const updated = prompts.map(p =>
+            setPrompts((current) => current.map(p =>
                 p.id === selectedPromptId
                     ? {...p, title: newPromptTitle.trim(), content: text}
                     : p
-            );
-
-            setPrompts(updated);
+            ));
         } else {
             const newPrompt: PromptItem = {
                 id: generateId(),
                 title: newPromptTitle.trim(),
                 content: text,
             };
-            const updated = [...prompts, newPrompt];
-
-            setPrompts(updated);
+            setPrompts((current) => [...current, newPrompt]);
             setSelectedPromptId(newPrompt.id);
         }
 
@@ -123,9 +119,7 @@ export const PromptModal = withShadowStyles(({
                                     e.preventDefault();
                                     e.stopPropagation();
 
-                                    const updated = prompts.filter(pr => pr.id !== p.id);
-
-                                    setPrompts(updated);
+                                    setPrompts((current) => current.filter(pr => pr.id !== p.id));
 
                                     if (selectedPromptId === p.id) {
                                         setSelectedPromptId("");

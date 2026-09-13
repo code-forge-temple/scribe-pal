@@ -6,6 +6,7 @@
  ************************************************************************/
 
 import {MESSAGE_TYPES} from "../../common/constants";
+import {THINK_LEVELS, ThinkSetting} from "./llmSettings";
 
 export type ChatMessage = {
     id: string;
@@ -56,9 +57,9 @@ export type MessageData = {
         type: typeof MESSAGE_TYPES.FETCH_AI_RESPONSE;
         messages: Message[];
         model: string;
-        think?: boolean;
+        think?: ThinkSetting;
         temperature?: number;
-        numCtx?: number;
+        contextWindow?: number;
     };
 }
 
@@ -97,11 +98,16 @@ export const isFetchAiResponseMessageData = (data: unknown): data is MessageData
 
     if(!("messages" in data) || !isMessages(data["messages"])) return false;
 
-    if("think" in data && typeof (data as {think?: unknown})["think"] !== "boolean") return false;
+    if("think" in data) {
+        const {think} = data as {think?: unknown};
+        const isLevel = typeof think === "string" && (THINK_LEVELS as readonly string[]).includes(think);
+
+        if (typeof think !== "boolean" && !isLevel) return false;
+    }
 
     if("temperature" in data && typeof (data as {temperature?: unknown})["temperature"] !== "number") return false;
 
-    if("numCtx" in data && typeof (data as {numCtx?: unknown})["numCtx"] !== "number") return false;
+    if("contextWindow" in data && typeof (data as {contextWindow?: unknown})["contextWindow"] !== "number") return false;
 
     return true;
 }

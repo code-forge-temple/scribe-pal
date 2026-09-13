@@ -127,7 +127,7 @@ browser.runtime.onConnect.addListener((port: any) => {
                     const stream = OllamaService.getInstance().fetchAIResponse(
                         data.messages,
                         data.model,
-                        {think: data.think, temperature: data.temperature, numCtx: data.numCtx}
+                        {think: data.think, temperature: data.temperature, contextWindow: data.contextWindow}
                     );
 
                     for await (const part of stream) {

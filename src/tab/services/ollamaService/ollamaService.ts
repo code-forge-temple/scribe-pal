@@ -9,6 +9,8 @@ import {Ollama, Options} from "ollama/browser";
 import {browser} from "../../../common/browser";
 import {ErrorResponse, FetchAiResponse, FetchModelResponse, Message} from "../../utils/types";
 import {DeleteModelResponse, FetchModelContextLengthResponse, FetchModelsResponse} from "./types";
+import {ThinkSetting} from "../../utils/llmSettings";
+import {isCloudModel} from "../../utils/modelContext";
 
 
 export class OllamaService {
@@ -68,7 +70,7 @@ export class OllamaService {
     async *fetchAIResponse (
         messages: Message[],
         model: string,
-        settings?: {think?: boolean; temperature?: number; numCtx?: number}
+        settings?: {think?: ThinkSetting; temperature?: number; contextWindow?: number}
     ): AsyncGenerator<FetchAiResponse, void, unknown> {
         try {
             const ollama = await this.getOllama();
@@ -85,8 +87,9 @@ export class OllamaService {
                 options.temperature = settings.temperature;
             }
 
-            if (settings?.numCtx !== undefined) {
-                options.num_ctx = settings.numCtx;
+            // Ollama Cloud ignores num_ctx outright (200, never applied).
+            if (settings?.contextWindow !== undefined && !isCloudModel(model)) {
+                options.num_ctx = settings.contextWindow;
             }
 
             const stream = await ollama.chat({
@@ -94,10 +97,9 @@ export class OllamaService {
                 messages: updatedMessages,
                 stream: true,
                 keep_alive: "60m",
-                // Always explicit: models that think by default (qwen3, deepseek-r1) ignore the
-                // setting if `think` is omitted. `think: false` is accepted by every model;
-                // only `think: true` errors on one with no thinking support.
-                think: settings?.think === true,
+                // Never coerced: a level is the only control some models respond to. Omitted when
+                // unset, which leaves the model to its default.
+                ...(settings?.think !== undefined ? {think: settings.think} : {}),
                 ...(Object.keys(options).length ? {options} : {})
             });
             let fullReply = "";

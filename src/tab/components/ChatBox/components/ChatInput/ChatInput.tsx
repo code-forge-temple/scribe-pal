@@ -10,15 +10,25 @@ import styles from "./ChatInput.scss?inline";
 import {withShadowStyles} from '../../../../utils/withShadowStyles';
 import {SUGGESTIONS} from '../../../../utils/constants';
 import {ChatInputSuggestions} from './components/ChatInputSuggestions';
+import {ContextGauge} from '../ContextGauge';
 
 type ChatInputProps = {
     message: string;
     onMessageChange: (value: string) => void;
     onSend: () => void;
     disabled?: boolean;
+    modelName: string;
+    usedTokens: number;
 }
 
-export const ChatInput = withShadowStyles(({message, onMessageChange, onSend, disabled = false}: ChatInputProps) => {
+export const ChatInput = withShadowStyles(({
+    message,
+    onMessageChange,
+    onSend,
+    disabled = false,
+    modelName,
+    usedTokens
+}: ChatInputProps) => {
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const [caret, setCaret] = useState<number>(0);
     const [suggestionsVisible, setSuggestionsVisible] = useState(false);
@@ -93,6 +103,7 @@ export const ChatInput = withShadowStyles(({message, onMessageChange, onSend, di
 
     return (
         <div className="chat-input-container">
+            <ContextGauge modelName={modelName} usedTokens={usedTokens} />
             <textarea
                 ref={inputRef}
                 rows={1}

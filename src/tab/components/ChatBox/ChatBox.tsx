@@ -228,7 +228,7 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
 
         setIsLLMResponding(true);
 
-        const {think, temperatureEnabled, temperature, numCtxEnabled, numCtx} = getModelSettings(llmSettingsMap, selectedModel);
+        const {think, temperature, contextWindow} = getModelSettings(llmSettingsMap, selectedModel);
 
         // The port closing before a final chunk is a silent failure otherwise — the service
         // worker being torn down mid-request (a slow model load will do it) looks identical
@@ -241,9 +241,9 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
                 type: MESSAGE_TYPES.FETCH_AI_RESPONSE,
                 messages: conversation,
                 model: selectedModel,
-                ...(think ? {think: true} : {}),
-                ...(temperatureEnabled ? {temperature} : {}),
-                ...(numCtxEnabled ? {numCtx} : {}),
+                ...(think !== undefined ? {think} : {}),
+                ...(temperature !== undefined ? {temperature} : {}),
+                ...(contextWindow !== undefined ? {contextWindow} : {}),
             },
             onMessage: (response) => {
                 if ("error" in response) {
@@ -262,12 +262,14 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
 
                         setIsLLMResponding(false);
 
-                        if (response.promptEvalCount !== undefined) {
+                        if (response.promptEvalCount !== undefined || response.evalCount !== undefined) {
                             setContextUsage({
                                 model: selectedModel,
-                                promptTokens: response.promptEvalCount,
+                                promptTokens: response.promptEvalCount ?? 0,
                                 replyTokens: response.evalCount ?? 0
                             });
+                        } else {
+                            setContextUsage({model: "", promptTokens: 0, replyTokens: 0});
                         }
                     }
                 }
@@ -330,7 +332,7 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
 
         setIsLLMResponding(true);
 
-        const {think, temperatureEnabled, temperature, numCtxEnabled, numCtx} = getModelSettings(llmSettingsMap, selectedModel);
+        const {think, temperature, contextWindow} = getModelSettings(llmSettingsMap, selectedModel);
 
         // The port closing before a final chunk is a silent failure otherwise — the service
         // worker being torn down mid-request (a slow model load will do it) looks identical
@@ -343,9 +345,9 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
                 type: MESSAGE_TYPES.FETCH_AI_RESPONSE,
                 messages: conversation,
                 model: selectedModel,
-                ...(think ? {think: true} : {}),
-                ...(temperatureEnabled ? {temperature} : {}),
-                ...(numCtxEnabled ? {numCtx} : {}),
+                ...(think !== undefined ? {think} : {}),
+                ...(temperature !== undefined ? {temperature} : {}),
+                ...(contextWindow !== undefined ? {contextWindow} : {}),
             },
             onMessage: (response) => {
                 if ("error" in response) {
@@ -364,12 +366,14 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
 
                         setIsLLMResponding(false);
 
-                        if (response.promptEvalCount !== undefined) {
+                        if (response.promptEvalCount !== undefined || response.evalCount !== undefined) {
                             setContextUsage({
                                 model: selectedModel,
-                                promptTokens: response.promptEvalCount,
+                                promptTokens: response.promptEvalCount ?? 0,
                                 replyTokens: response.evalCount ?? 0
                             });
+                        } else {
+                            setContextUsage({model: "", promptTokens: 0, replyTokens: 0});
                         }
                     }
                 }
@@ -426,7 +430,7 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
 
         polyfillRuntimeSendMessage({type: MESSAGE_TYPES.DELETE_MODEL, model: modelName}).then((response?: DeleteModelResponse) => {
             if (response?.success) {
-                setLlmSettingsMap(withoutModelSettings(llmSettingsMap, modelName));
+                setLlmSettingsMap((current) => withoutModelSettings(current, modelName));
                 setSelectedModel("");
                 fetchModels();
             } else {
@@ -522,7 +526,6 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
                 onExpand={handleExpand}
                 onMinimize={handleMinimize}
                 onClose={handleClose}
-                usedTokens={contextUsage.model === selectedModel ? contextUsage.promptTokens + contextUsage.replyTokens : 0}
             />
             {!isMinimized && (
                 <>
@@ -660,6 +663,8 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
                         onMessageChange={setMessage}
                         onSend={handleSend}
                         disabled={isLLMResponding}
+                        modelName={selectedModel}
+                        usedTokens={contextUsage.model === selectedModel ? contextUsage.promptTokens + contextUsage.replyTokens : 0}
                     />
                 </>
             )}

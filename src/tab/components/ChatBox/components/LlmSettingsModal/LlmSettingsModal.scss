@@ -98,8 +98,37 @@
             font-variant-numeric: tabular-nums;
         }
 
-        &.num-ctx-slider-wrap .slider-value {
+        &.context-window-slider-wrap .slider-value {
             min-width: 62px;
+        }
+    }
+
+    .setting-select {
+        display: inline-block;
+        flex: 1;
+        min-width: 0;
+        padding: 3px 6px;
+        border: 1px solid #c9c9c9;
+        border-radius: 4px;
+        background: white;
+        color: inherit;
+        cursor: pointer;
+
+        &.disabled {
+            opacity: 0.5;
+            cursor: default;
+        }
+    }
+
+    .setting-note {
+        display: block;
+        font-size: 0.85em;
+        line-height: 1.35;
+        opacity: 0.75;
+
+        // Blocks, not <br>: the `all: unset` reset strips a bare <br> of its line break.
+        span {
+            display: block;
         }
     }
 
@@ -123,6 +152,12 @@
 
         .temp-slider-wrap input[type="range"] {
             background: commonVars.$dark-theme-secondary-color;
+        }
+
+        .setting-select {
+            background: commonVars.$dark-theme-secondary-color;
+            border-color: commonVars.$dark-theme-secondary-color;
+            color: white;
         }
     }
 }

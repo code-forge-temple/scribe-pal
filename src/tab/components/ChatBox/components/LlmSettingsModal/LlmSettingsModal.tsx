@@ -10,16 +10,22 @@ import styles from "./LlmSettingsModal.scss?inline";
 import {withShadowStyles} from "../../../../utils/withShadowStyles";
 import {useGlobalStorage} from "../../../../hooks";
 import {
-    DEFAULT_LLM_SETTINGS,
+    CONTEXT_DEFAULT_TIERS,
     LLM_SETTINGS_STORAGE_KEY,
+    LlmSettingsDraft,
     LlmSettingsMap,
-    NUM_CTX_FALLBACK_MAX,
-    NUM_CTX_MIN,
-    NUM_CTX_STEP,
+    CONTEXT_WINDOW_FALLBACK_MAX,
+    CONTEXT_WINDOW_MIN,
+    CONTEXT_WINDOW_STEP,
+    TEMPERATURE_MAX,
+    TEMPERATURE_MIN,
+    TEMPERATURE_STEP,
+    fromDraft,
     getModelSettings,
+    toDraft,
     withModelSettings
 } from "../../../../utils/llmSettings";
-import {MODEL_CONTEXT_STORAGE_KEY, ModelContextMap} from "../../../../utils/modelContext";
+import {MODEL_CONTEXT_STORAGE_KEY, ModelContextMap, isCloudModel} from "../../../../utils/modelContext";
 import {FetchModelContextLengthResponse} from "../../../../services/ollamaService/types";
 import {polyfillRuntimeSendMessage} from "../../../../privilegedAPIs/privilegedAPIs";
 import {MESSAGE_TYPES} from "../../../../../common/constants";
@@ -31,29 +37,28 @@ type LlmSettingsModalProps = {
     onClose: () => void;
 };
 
+// "Default" is reasoning on with no level requested, i.e. plain `think: true`.
+const THINK_LEVEL_OPTIONS: {value: LlmSettingsDraft["thinkLevel"]; label: string}[] = [
+    {value: "default", label: "Default"},
+    {value: "low", label: "Low"},
+    {value: "medium", label: "Medium"},
+    {value: "high", label: "High"}
+];
+
 export const LlmSettingsModal = withShadowStyles(({visible, modelName, onClose}: LlmSettingsModalProps) => {
     const [llmSettingsMap, setLlmSettingsMap] = useGlobalStorage<LlmSettingsMap>(LLM_SETTINGS_STORAGE_KEY, {});
     const [modelContextMap, setModelContextMap] = useGlobalStorage<ModelContextMap>(MODEL_CONTEXT_STORAGE_KEY, {});
 
-    const [think, setThink] = useState(DEFAULT_LLM_SETTINGS.think);
-    const [temperatureEnabled, setTemperatureEnabled] = useState(DEFAULT_LLM_SETTINGS.temperatureEnabled);
-    const [temperature, setTemperature] = useState(DEFAULT_LLM_SETTINGS.temperature);
-    const [numCtxEnabled, setNumCtxEnabled] = useState(DEFAULT_LLM_SETTINGS.numCtxEnabled);
-    const [numCtx, setNumCtx] = useState(DEFAULT_LLM_SETTINGS.numCtx);
+    const [draft, setDraft] = useState<LlmSettingsDraft>(() => toDraft({}));
 
-    // `getModelSettings` is called inside the effect, not in the render body: it merges over
-    // the defaults and so returns a fresh object every call, which as a dependency would
-    // reseed on every render and snap the sliders back mid-drag.
+    const isCloud = isCloudModel(modelName);
+
+    // Called inside the effect: it returns a fresh object each time, so as a dependency it
+    // would reseed every render and snap the sliders back mid-drag.
     useEffect(() => {
         if (!visible) return;
 
-        const settings = getModelSettings(llmSettingsMap, modelName);
-
-        setThink(settings.think);
-        setTemperatureEnabled(settings.temperatureEnabled);
-        setTemperature(settings.temperature);
-        setNumCtxEnabled(settings.numCtxEnabled);
-        setNumCtx(settings.numCtx);
+        setDraft(toDraft(getModelSettings(llmSettingsMap, modelName)));
     }, [visible, modelName, llmSettingsMap]);
 
     // `modelContextMap` is both read and written here, but a cached value (null included)
@@ -66,14 +71,13 @@ export const LlmSettingsModal = withShadowStyles(({visible, modelName, onClose}:
 
         polyfillRuntimeSendMessage({type: MESSAGE_TYPES.FETCH_MODEL_CONTEXT_LENGTH, model: modelName})
             .then((response?: FetchModelContextLengthResponse) => {
-                if (!active) return;
+                if (!active || !response?.success) return;
 
-                setModelContextMap({
-                    ...modelContextMap,
-                    [modelName]: response?.success ? response.contextLength : null
-                });
+                // Only a real "no length" is cached as null; null is never retried, so a failed
+                // lookup must record nothing.
+                setModelContextMap((current) => ({...current, [modelName]: response.contextLength}));
             })
-            .catch(() => { /* host unreachable / context gone — the slider falls back to its default ceiling */ });
+            .catch(() => { /* host unreachable / context gone — retried next time the dialog opens */ });
 
         return () => { active = false; };
     }, [visible, modelName, modelContextMap, setModelContextMap]);
@@ -81,19 +85,18 @@ export const LlmSettingsModal = withShadowStyles(({visible, modelName, onClose}:
     if (!visible) return null;
 
     const modelMax = modelContextMap[modelName];
-    // Floored at NUM_CTX_MIN, not DEFAULT_NUM_CTX: a model whose real maximum is below
-    // Ollama's default must not get a slider that exceeds it.
-    const numCtxMax = Math.max(modelMax ?? NUM_CTX_FALLBACK_MAX, NUM_CTX_MIN);
-    const numCtxValue = Math.min(numCtx, numCtxMax);
+    // Floored at CONTEXT_WINDOW_MIN, not the default: a smaller real maximum must still cap the slider.
+    const contextWindowMax = Math.max(modelMax ?? CONTEXT_WINDOW_FALLBACK_MAX, CONTEXT_WINDOW_MIN);
+    const contextWindowValue = Math.min(draft.contextWindow, contextWindowMax);
 
     const handleSave = () => {
-        setLlmSettingsMap(withModelSettings(llmSettingsMap, modelName, {
-            think,
-            temperatureEnabled,
-            temperature,
-            numCtxEnabled,
-            numCtx: numCtxValue
-        }));
+        const settings = fromDraft({...draft, contextWindow: contextWindowValue});
+
+        if (isCloud) {
+            delete settings.contextWindow;
+        }
+
+        setLlmSettingsMap((current) => withModelSettings(current, modelName, settings));
         onClose();
     };
 
@@ -104,51 +107,92 @@ export const LlmSettingsModal = withShadowStyles(({visible, modelName, onClose}:
 
                 <div className="setting-row">
                     <span className="setting-label">Thinking</span>
-                    <Toggle checked={think} onChange={setThink} />
+                    <Toggle
+                        checked={draft.thinkEnabled}
+                        onChange={(checked) => setDraft({...draft, thinkEnabled: checked})}
+                    />
+                    <select
+                        className={`setting-select${draft.thinkEnabled ? "" : " disabled"}`}
+                        name="thinkLevel"
+                        aria-label="Thinking level"
+                        value={draft.thinkLevel}
+                        disabled={!draft.thinkEnabled}
+                        onChange={(e) => setDraft({...draft, thinkLevel: e.target.value as LlmSettingsDraft["thinkLevel"]})}
+                    >
+                        {THINK_LEVEL_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                    </select>
+                </div>
+                <div className="setting-note">
+                    <span>Not every model honours Off — some always reason and ignore the switch.</span>
+                    <span>For those a level is the only control over how much reasoning you get.</span>
                 </div>
 
                 <div className="setting-row">
                     <span className="setting-label">Temperature</span>
-                    <Toggle checked={temperatureEnabled} onChange={setTemperatureEnabled} />
-                    <span className={`temp-slider-wrap${temperatureEnabled ? "" : " disabled"}`}>
+                    <Toggle
+                        checked={draft.temperatureEnabled}
+                        onChange={(checked) => setDraft({...draft, temperatureEnabled: checked})}
+                    />
+                    <span className={`temp-slider-wrap${draft.temperatureEnabled ? "" : " disabled"}`}>
                         <input
                             type="range"
                             name="temperature"
                             aria-label="Temperature"
-                            min={0}
-                            max={2}
-                            step={0.1}
-                            value={temperature}
-                            disabled={!temperatureEnabled}
-                            onChange={(e) => setTemperature(Number(e.target.value))}
+                            min={TEMPERATURE_MIN}
+                            max={TEMPERATURE_MAX}
+                            step={TEMPERATURE_STEP}
+                            value={draft.temperature}
+                            disabled={!draft.temperatureEnabled}
+                            onChange={(e) => setDraft({...draft, temperature: Number(e.target.value)})}
                         />
-                        <span className="slider-value">{temperature.toFixed(1)}</span>
+                        <span className="slider-value">{draft.temperature.toFixed(1)}</span>
                     </span>
                 </div>
 
-                <div className="setting-row">
-                    <span className="setting-label">Context size</span>
-                    <Toggle checked={numCtxEnabled} onChange={setNumCtxEnabled} />
-                    <span className={`temp-slider-wrap num-ctx-slider-wrap${numCtxEnabled ? "" : " disabled"}`}>
-                        <input
-                            type="range"
-                            name="numCtx"
-                            aria-label="Context size (num_ctx)"
-                            min={NUM_CTX_MIN}
-                            max={numCtxMax}
-                            step={NUM_CTX_STEP}
-                            value={numCtxValue}
-                            disabled={!numCtxEnabled}
-                            onChange={(e) => setNumCtx(Number(e.target.value))}
-                        />
-                        <span
-                            className="slider-value"
-                            title={modelMax ? `Model maximum: ${modelMax.toLocaleString()}` : "Model maximum unknown"}
-                        >
-                            {numCtxValue.toLocaleString()}
-                        </span>
-                    </span>
-                </div>
+                {isCloud ? (
+                    <div className="setting-note">
+                        Context size is fixed at this model&apos;s maximum. Cloud models run on Ollama&apos;s
+                        servers, which ignore any window you set.
+                    </div>
+                ) : (
+                    <>
+                        <div className="setting-row">
+                            <span className="setting-label">Context size</span>
+                            <Toggle
+                                checked={draft.contextWindowEnabled}
+                                onChange={(checked) => setDraft({...draft, contextWindowEnabled: checked})}
+                            />
+                            <span className={`temp-slider-wrap context-window-slider-wrap${draft.contextWindowEnabled ? "" : " disabled"}`}>
+                                <input
+                                    type="range"
+                                    name="contextWindow"
+                                    aria-label="Context size (num_ctx)"
+                                    min={CONTEXT_WINDOW_MIN}
+                                    max={contextWindowMax}
+                                    step={CONTEXT_WINDOW_STEP}
+                                    value={contextWindowValue}
+                                    disabled={!draft.contextWindowEnabled}
+                                    onChange={(e) => setDraft({...draft, contextWindow: Number(e.target.value)})}
+                                />
+                                <span className="slider-value">{contextWindowValue.toLocaleString()}</span>
+                            </span>
+                        </div>
+                        <div className="setting-note">
+                            <span>
+                                {modelMax
+                                    ? `Model maximum: ${modelMax.toLocaleString()} tokens.`
+                                    : "Model maximum unknown."}
+                            </span>
+                            <span>
+                                Left off, Ollama picks its own default from the server&apos;s free VRAM
+                                ({CONTEXT_DEFAULT_TIERS}).
+                            </span>
+                            <span>Changing this makes Ollama reload the model, so the next reply is slower.</span>
+                        </div>
+                    </>
+                )}
             </div>
             <div className="modal-buttons">
                 <button onClick={onClose}>Cancel</button>

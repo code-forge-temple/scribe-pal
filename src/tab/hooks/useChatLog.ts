@@ -80,7 +80,12 @@ export const useChatLog = ({tabId, chatBoxId}: ChatBoxIds) => {
             setChatLogState((prevLog) => {
                 const updated = prevLog.map((msg): ChatMessage =>
                     msg.id === params.messageId
-                        ? {...msg, text: params.text, loading: params.loading, thinking: params.thinking ?? msg.thinking}
+                        ? {
+                            ...msg,
+                            text: params.text,
+                            loading: params.loading,
+                            thinking: "thinking" in params ? params.thinking : msg.thinking
+                        }
                         : msg
                 );
 
