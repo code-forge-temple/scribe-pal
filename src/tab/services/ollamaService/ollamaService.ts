@@ -124,19 +124,23 @@ export class OllamaService {
                     evalCount = part.eval_count;
                 }
 
+                const {thinking: inlineThinking, reply} = splitInlineThinking(fullReply, false);
+
                 yield {
                     success: true,
                     final: false,
-                    reply: fullReply,
-                    thinking: fullThinking || undefined
+                    reply,
+                    thinking: (fullThinking + inlineThinking) || undefined
                 };
             }
+
+            const {thinking: inlineThinking, reply} = splitInlineThinking(fullReply, true);
 
             yield {
                 success: true,
                 final: true,
-                reply: fullReply,
-                thinking: fullThinking || undefined,
+                reply,
+                thinking: (fullThinking + inlineThinking) || undefined,
                 ...(promptEvalCount !== undefined ? {promptEvalCount} : {}),
                 ...(evalCount !== undefined ? {evalCount} : {})
             };
@@ -238,6 +242,35 @@ export class OllamaService {
             };
         }
     }
+}
+
+// Models whose Ollama template doesn't declare thinking write it into the reply between their own markers.
+const INLINE_THINKING_FORMATS: {open: string; close: string; label?: RegExp}[] = [
+    // MedGemma 1.5: "<unused94> thought\n…<unused95>answer".
+    {open: "<unused94>", close: "<unused95>", label: /^\s*thought\b/},
+    // DeepSeek-R1-style models.
+    {open: "<think>", close: "</think>"},
+];
+
+// Only reasoning that opens the reply: a reply merely mentioning a marker stays as it is. Run on the whole
+// reply so far, since a marker can arrive split across chunks; until `final`, a possible marker's start is held back.
+function splitInlineThinking (raw: string, final: boolean): {thinking: string; reply: string} {
+    const text = raw.trimStart();
+
+    for (const {open, close, label} of INLINE_THINKING_FORMATS) {
+        if (!final && text.length < open.length && open.startsWith(text)) return {thinking: "", reply: ""};
+
+        if (!text.startsWith(open)) continue;
+
+        const body = text.slice(open.length).replace(label ?? /^/, "");
+        const end = body.indexOf(close);
+
+        return end === -1
+            ? {thinking: body.trim(), reply: ""}
+            : {thinking: body.slice(0, end).trim(), reply: body.slice(end + close.length).trimStart()};
+    }
+
+    return {thinking: "", reply: raw};
 }
 
 function extractImages (content: string): string[] {

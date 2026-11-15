@@ -13,9 +13,10 @@ import {withShadowStyles} from '../../../../utils/withShadowStyles';
 type ThinkingAccordionProps = {
     thinking: string;
     isStreaming: boolean;
+    label?: string;
 };
 
-export const ThinkingAccordion = withShadowStyles(({thinking, isStreaming}: ThinkingAccordionProps) => {
+export const ThinkingAccordion = withShadowStyles(({thinking, isStreaming, label}: ThinkingAccordionProps) => {
     // Open while actively streaming; a finished panel (e.g. after reload) mounts collapsed.
     const [open, setOpen] = useState(isStreaming);
     const bodyRef = useRef<HTMLDivElement>(null);
@@ -45,7 +46,7 @@ export const ThinkingAccordion = withShadowStyles(({thinking, isStreaming}: Thin
                 onMouseDown={(e) => e.stopPropagation()}
             >
                 <span className="thinking-chevron">{open ? '▾' : '▸'}</span>
-                {isStreaming ? 'Thinking…' : 'Thought process'}
+                {label ?? (isStreaming ? 'Thinking…' : 'Thought process')}
             </button>
             <div className={`thinking-body${open ? ' open' : ''}`} ref={bodyRef}>
                 <MarkdownRenderer content={thinking} />

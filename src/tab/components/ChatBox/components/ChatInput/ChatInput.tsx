@@ -9,31 +9,42 @@ import React, {useRef, useState, useLayoutEffect, useEffect} from 'react';
 import styles from "./ChatInput.scss?inline";
 import {withShadowStyles} from '../../../../utils/withShadowStyles';
 import {SUGGESTIONS} from '../../../../utils/constants';
-import {ChatInputSuggestions} from './components/ChatInputSuggestions';
+import {ChatInputSuggestions, Suggestion} from './components/ChatInputSuggestions';
 import {ContextGauge} from '../ContextGauge';
+import {matchingSuggestions} from './suggestions';
 
 type ChatInputProps = {
     message: string;
     onMessageChange: (value: string) => void;
     onSend: () => void;
+    commands: Suggestion[];
+    commandsNotice?: string;
     disabled?: boolean;
     modelName: string;
     usedTokens: number;
 }
 
+const KEYWORD_SUGGESTIONS: Suggestion[] = SUGGESTIONS.map((value) => ({value}));
+
 export const ChatInput = withShadowStyles(({
     message,
     onMessageChange,
     onSend,
+    commands,
+    commandsNotice,
     disabled = false,
     modelName,
     usedTokens
 }: ChatInputProps) => {
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const [caret, setCaret] = useState<number>(0);
+    const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+    const [notice, setNotice] = useState<string | undefined>();
     const [suggestionsVisible, setSuggestionsVisible] = useState(false);
     const [suggestionPosition, setSuggestionPosition] = useState({top: 0, left: 0});
     const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0);
+    // Where Escape closed the menu. Without it, a command list arriving later reopens the menu, and Enter picks instead of sending.
+    const [dismissedAt, setDismissedAt] = useState("");
 
     useLayoutEffect(() => {
         if (inputRef.current) {
@@ -60,11 +71,23 @@ export const ChatInput = withShadowStyles(({
         }
     }, [message, caret]);
 
+    // Only until the text or caret moves: coming back to the same spot later must open the menu again.
+    useEffect(() => {
+        if (dismissedAt && dismissedAt !== `${caret}:${message}`) {
+            setDismissedAt("");
+        }
+    }, [message, caret, dismissedAt]);
+
     useEffect(() => {
         const textUpToCaret = message.slice(0, caret);
-        const lastWord = textUpToCaret.split(" ").pop() || "";
+        const words = textUpToCaret.split(/\s/);
+        const lastWord = words.pop() || "";
+        const isCommandWord = lastWord.startsWith("/") && words.every((word) => word === "");
+        const options = lastWord.startsWith("@") ? KEYWORD_SUGGESTIONS : isCommandWord ? commands : [];
+        const matching = matchingSuggestions(options, lastWord);
+        const menuNotice = isCommandWord && !commands.length ? commandsNotice : undefined;
 
-        if (lastWord.includes("@") && inputRef.current) {
+        if ((matching.length || menuNotice) && dismissedAt !== `${caret}:${message}` && inputRef.current) {
             const canvas = document.createElement("canvas");
             const ctx = canvas.getContext("2d");
 
@@ -73,10 +96,13 @@ export const ChatInput = withShadowStyles(({
 
                 ctx.font = computedStyle.font;
 
+                const textStart = parseFloat(computedStyle.borderLeftWidth || "0") + parseFloat(computedStyle.paddingLeft || "0");
                 const textWidth = ctx.measureText(textUpToCaret).width;
                 const {top, left} = inputRef.current.getBoundingClientRect();
 
-                setSuggestionPosition({top: top, left: left + textWidth - inputRef.current.scrollLeft});
+                setSuggestionPosition({top: top, left: left + textStart + textWidth - inputRef.current.scrollLeft});
+                setSuggestions(matching);
+                setNotice(menuNotice);
                 setSuggestionsVisible(true);
 
                 setSelectedSuggestionIndex(0);
@@ -84,7 +110,7 @@ export const ChatInput = withShadowStyles(({
         } else {
             setSuggestionsVisible(false);
         }
-    }, [message, caret]);
+    }, [message, caret, commands, commandsNotice, dismissedAt]);
 
     const onSuggestionClick = (option: string) => {
         const textUpToCaret = message.slice(0, caret);
@@ -146,22 +172,31 @@ export const ChatInput = withShadowStyles(({
                     const start = input.selectionStart ?? 0;
                     const end = input.selectionEnd ?? 0;
 
-                    if (suggestionsVisible && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+                    if (suggestionsVisible && suggestions.length && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
                         e.preventDefault();
 
                         if (e.key === "ArrowDown") {
-                            setSelectedSuggestionIndex((prev) => (prev + 1) % SUGGESTIONS.length);
+                            setSelectedSuggestionIndex((prev) => (prev + 1) % suggestions.length);
                         } else {
-                            setSelectedSuggestionIndex((prev) => (prev - 1 + SUGGESTIONS.length) % SUGGESTIONS.length);
+                            setSelectedSuggestionIndex((prev) => (prev - 1 + suggestions.length) % suggestions.length);
                         }
 
                         return;
                     }
 
-                    if (suggestionsVisible && e.key === "Enter") {
+                    if (suggestionsVisible && suggestions.length && e.key === "Enter") {
                         e.preventDefault();
 
-                        onSuggestionClick(SUGGESTIONS[selectedSuggestionIndex]);
+                        onSuggestionClick(suggestions[selectedSuggestionIndex].value);
+
+                        return;
+                    }
+
+                    if (suggestionsVisible && e.key === "Escape") {
+                        e.preventDefault();
+
+                        setDismissedAt(`${caret}:${message}`);
+                        setSuggestionsVisible(false);
 
                         return;
                     }
@@ -225,7 +260,8 @@ export const ChatInput = withShadowStyles(({
             <button onClick={onSend} disabled={disabled}>Send</button>
             {suggestionsVisible && (
                 <ChatInputSuggestions
-                    suggestions={SUGGESTIONS}
+                    suggestions={suggestions}
+                    notice={notice}
                     selectedIndex={selectedSuggestionIndex}
                     position={suggestionPosition}
                     onSuggestionClick={onSuggestionClick}

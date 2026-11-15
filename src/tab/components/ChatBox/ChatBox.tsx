@@ -5,11 +5,29 @@
  *    See the LICENSE file in the project root for more information.    *
  ************************************************************************/
 
-import React, {useRef, useEffect, useState, useCallback} from "react";
+import React, {useRef, useEffect, useState, useCallback, useMemo} from "react";
 import {usePersistentState, useDraggablePosition, useGlobalStorage} from "../../hooks";
-import {ChatBoxIds, ContextUsage, FileData} from "../../utils/types";
+import {ChatBoxIds, ChatMessage, CommandCall, CommandMessageData, CommandResults, CommandRun, ContextUsage, FileData, Message} from "../../utils/types";
 import {DeleteModelResponse, FetchModelsResponse, LlmModel} from "../../services/ollamaService/types";
-import {LLM_SETTINGS_STORAGE_KEY, LlmSettingsMap, getModelSettings, withoutModelSettings} from "../../utils/llmSettings";
+import {DEFAULT_CONTEXT_WINDOW, LLM_SETTINGS_STORAGE_KEY, LlmSettingsMap, getModelSettings, withoutModelSettings} from "../../utils/llmSettings";
+import {MODEL_CONTEXT_STORAGE_KEY, ModelContextMap, resolveContextLimit} from "../../utils/modelContext";
+import {AgenticSignalCommand, CommandErrorResponse, CommandJobResponse, FetchCommandsResponse} from "../../services/agenticSignalService/types";
+import {
+    buildCommandBody,
+    commandFailureText,
+    commandInterruptedText,
+    commandLostText,
+    commandReplySystemPrompt,
+    commandResultsLabel,
+    commandResultsMessage,
+    commandRunningText,
+    commandUnavailableText,
+    commandsNotice,
+    COMMANDS_CHECKING,
+    formatCommandResult,
+    isEmptyCommandResult,
+    parseCommandMessage
+} from "../../utils/agenticSignal";
 import {EXTENSION_NAME, MESSAGE_TYPES} from "../../../common/constants";
 import {ChatInput} from "./components/ChatInput";
 import {ChatLog} from "./components/ChatLog";
@@ -69,6 +87,29 @@ const ROLE = {
     ASSISTANT: "assistant"
 } as const;
 
+const NO_ANSWER: CommandErrorResponse = {success: false, code: "no_answer", error: "The extension's background script didn't answer."};
+
+const systemMessage = (prompt: string): Message[] => prompt.trim()
+    ? [{role: ROLE.SYSTEM, content: prompt.trim()}]
+    : [];
+
+// A command reply's results go to the model just before that reply, as a user message.
+const toConversation = (messages: ChatMessage[]): Message[] => messages
+    .filter((msg) => !msg.loading)
+    .flatMap((msg) => [
+        ...(msg.commandResults ? [{role: ROLE.USER, content: msg.commandResults.content}] : []),
+        {role: msg.sender === ROLE.USER ? ROLE.USER : ROLE.ASSISTANT, content: msg.text}
+    ]);
+
+const askAgenticSignal = (payload: CommandMessageData[keyof CommandMessageData]): Promise<CommandJobResponse> =>
+    polyfillRuntimeSendMessage(payload)
+        .then((response?: CommandJobResponse) => response ?? NO_ANSWER)
+        .catch(() => NO_ANSWER);
+
+const cancelJob = (job: string) => {
+    polyfillRuntimeSendMessage({type: MESSAGE_TYPES.CANCEL_COMMAND, job});
+};
+
 type ChatBoxProps = ChatBoxIds & {
     onRemove: () => void;
     coordsOffset: number;
@@ -84,9 +125,12 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
             top: `calc(210px + ${30 * coordsOffset}px)`
         });
     const [message, setMessage] = usePersistentState<string>("chatBoxMessage", "", {tabId, chatBoxId});
-    const {chatLog, setChatLog} = useChatLog({tabId, chatBoxId});
-    const [selectedModel, setSelectedModel] = usePersistentState<string>("chatBoxSelectedModel", "", {tabId, chatBoxId});
+    const {chatLog, setChatLog, isLoaded: isChatLogLoaded} = useChatLog({tabId, chatBoxId});
+    const [selectedModel, setSelectedModel, isSelectedModelLoaded] = usePersistentState<string>("chatBoxSelectedModel", "", {tabId, chatBoxId});
     const [models, setModels] = useState<LlmModel[]>([]);
+    const [commands, setCommands] = useState<AgenticSignalCommand[]>([]);
+    // Until the first answer; later fetches keep showing the last one until theirs arrives.
+    const [commandsNoticeText, setCommandsNoticeText] = useState<string | undefined>(COMMANDS_CHECKING);
     const [isMinimized, setIsMinimized] = usePersistentState<boolean>("chatBoxMinimized", false, {tabId, chatBoxId});
     const [isExpanded, setIsExpanded] = usePersistentState<boolean>("chatBoxExpanded", false, {tabId, chatBoxId});
     const [isLLMResponding, setIsLLMResponding] = useState<boolean>(false);
@@ -94,7 +138,7 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
     const [capturedImage, setCapturedImage] = usePersistentState<string>("capturedImage", "", {tabId, chatBoxId});
     const [capturedModalVisible, setCapturedModalVisible] = useState<boolean>(false);
     const [capturedImageModalVisible, setCapturedImageModalVisible] = useState<boolean>(false);
-    const [promptMessage, setPromptMessage] = usePersistentState<string>("promptMessage", "", {tabId, chatBoxId});
+    const [promptMessage, setPromptMessage, isPromptMessageLoaded] = usePersistentState<string>("promptMessage", "", {tabId, chatBoxId});
     const [promptModalVisible, setPromptModalVisible] = useState<boolean>(false);
 
     const [attachedFiles, setAttachedFiles] = usePersistentState<FileData[]>("attachedFiles", [], {tabId, chatBoxId});
@@ -102,6 +146,14 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
     const [attachedFilesModalVisible, setAttachedFilesModalVisible] = useState<boolean>(false);
 
     const [llmSettingsMap, setLlmSettingsMap] = useGlobalStorage<LlmSettingsMap>(LLM_SETTINGS_STORAGE_KEY, {});
+    const [modelContextMap] = useGlobalStorage<ModelContextMap>(MODEL_CONTEXT_STORAGE_KEY, {});
+
+    // Keyed by the reply's message id; a run is cancelled by removing it from here.
+    const commandRuns = useRef(new Map<string, {job?: string; timer?: ReturnType<typeof setTimeout>}>());
+    // A run's polling outlives the render that started it, so it reads the state from here.
+    const latest = useRef({chatLog, selectedModel, llmSettingsMap, modelContextMap, promptMessage});
+
+    latest.current = {chatLog, selectedModel, llmSettingsMap, modelContextMap, promptMessage};
 
     const updateTheme = useTheme(boxRef);
 
@@ -123,6 +175,21 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
         });
     }, [setModels, setChatLog]);
 
+    const fetchCommands = useCallback(async () => {
+        const response: FetchCommandsResponse | undefined = await polyfillRuntimeSendMessage({type: MESSAGE_TYPES.FETCH_COMMANDS})
+            .catch(() => undefined);
+
+        setCommands(response?.success ? response.commands : []);
+        setCommandsNoticeText(commandsNotice(response));
+
+        return response;
+    }, [setCommands]);
+
+    const commandSuggestions = useMemo(
+        () => commands.map(({command, description}) => ({value: `/${command}`, description})),
+        [commands]
+    );
+
     const pollForNewModel = useCallback((targetModel: string) => {
         const intervalId = setInterval(() => {
             polyfillRuntimeSendMessage({type: MESSAGE_TYPES.FETCH_MODELS}).then((response?: FetchModelsResponse) => {
@@ -139,8 +206,18 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
 
     useEffect(() => {
         fetchModels();
+        fetchCommands();
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // Commands come and go as workflows are switched on and off in Agentic Signal.
+    const startsWithCommand = /^\s*\//.test(message);
+
+    useEffect(() => {
+        if (startsWithCommand) {
+            fetchCommands();
+        }
+    }, [startsWithCommand, fetchCommands]);
 
     useEffect(() => {
         requestAnimationFrame(() => {
@@ -156,6 +233,8 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
         const listener = (message: any) => {
             if (message.type === MESSAGE_TYPES.ACTION_OLLAMA_HOST_UPDATED) {
                 fetchModels();
+            } else if (message.type === MESSAGE_TYPES.ACTION_AGENTIC_SIGNAL_UPDATED) {
+                fetchCommands();
             } else if (message.type === MESSAGE_TYPES.ACTION_UPDATE_THEME) {
                 updateTheme();
             }
@@ -187,47 +266,8 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
 
     useKeepInViewport({ref: boxRef, position, setPosition, isVisible, triggerCheck: isExpanded});
 
-    const handleSend = async () => {
-        if (message.trim() === "") return;
-
-        const formattedMessage = formatMessage(message, {capturedText, capturedImage, attachedFiles});
-
-        const conversationHistory = chatLog
-            .filter((msg) => !msg.loading)
-            .map((msg) => ({
-                role: msg.sender === ROLE.USER ? ROLE.USER : ROLE.ASSISTANT,
-                content: msg.text
-            }));
-
-        const systemMessage = promptMessage.trim()
-            ? [{role: ROLE.SYSTEM, content: promptMessage.trim()}]
-            : [];
-
-        const conversation = [
-            ...systemMessage,
-            ...conversationHistory,
-            {role: ROLE.USER, content: formattedMessage}
-        ];
-
-        setChatLog({text: formattedMessage, sender: ROLE.USER});
-
-        if (!selectedModel) {
-            setChatLog({
-                text: `${EXTENSION_NAME}: Please select a model before sending a message.`,
-                sender: EXTENSION_NAME
-            });
-
-            return;
-        }
-
-        const pendingMessageId = setChatLog({
-            text: `${EXTENSION_NAME}: `,
-            sender: EXTENSION_NAME,
-            loading: true
-        });
-
-        setIsLLMResponding(true);
-
+    const streamReply = (conversation: Message[], pendingMessageId: string, clearInput: boolean) => {
+        const {selectedModel, llmSettingsMap} = latest.current;
         const {think, temperature, contextWindow} = getModelSettings(llmSettingsMap, selectedModel);
 
         // The port closing before a final chunk is a silent failure otherwise — the service
@@ -274,7 +314,9 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
                     }
                 }
 
-                setMessage("");
+                if (clearInput) {
+                    setMessage("");
+                }
             },
             onDisconnect: () => {
                 if (settled) return;
@@ -289,39 +331,177 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
         });
     };
 
-    const handleResendMessage = (messageIndex: number) => {
-        const msg = chatLog[messageIndex];
+    const replyToCommand = (messageId: string, run: CommandRun, commandResults: CommandResults) => {
+        const {chatLog, promptMessage} = latest.current;
+        const index = chatLog.findIndex((msg) => msg.id === messageId);
 
-        if (!msg || msg.sender !== ROLE.USER) return;
+        streamReply([
+            ...systemMessage(`${commandReplySystemPrompt(run)}\n\n${promptMessage}`),
+            ...toConversation(index === -1 ? chatLog : chatLog.slice(0, index)),
+            {role: ROLE.USER, content: commandResults.content}
+        ], messageId, false);
+    };
 
-        const truncatedChatLog = chatLog.slice(0, messageIndex + 1);
-        const conversationHistory = truncatedChatLog
-            .slice(0, messageIndex)
-            .filter((m) => !m.loading)
-            .map((m) => ({
-                role: m.sender === ROLE.USER ? ROLE.USER : ROLE.ASSISTANT,
-                content: m.text
-            }));
-        const systemMessage = promptMessage.trim()
-            ? [{role: ROLE.SYSTEM, content: promptMessage.trim()}]
-            : [];
-        const conversation = [
-            ...systemMessage,
-            ...conversationHistory,
-            {role: ROLE.USER, content: msg.text}
-        ];
+    const answerFromResult = (messageId: string, run: CommandRun, result: unknown) => {
+        const {selectedModel, llmSettingsMap, modelContextMap} = latest.current;
+        const finishedRun: CommandRun = {command: run.command, description: run.description, request: run.request};
 
-        if (!selectedModel) {
+        if (isEmptyCommandResult(result) || !selectedModel) {
             setChatLog({
-                text: `${EXTENSION_NAME}: Please select a model before resending a message.`,
+                text: `${EXTENSION_NAME}: ${isEmptyCommandResult(result) ? `/${run.command} finished without a result.` : formatCommandResult(result)}`,
+                messageId,
+                commandRun: finishedRun
+            });
+            setIsLLMResponding(false);
+
+            return;
+        }
+
+        const {limit} = resolveContextLimit(selectedModel, getModelSettings(llmSettingsMap, selectedModel), modelContextMap[selectedModel]);
+        const commandResults: CommandResults = {
+            label: commandResultsLabel(run.command),
+            content: commandResultsMessage(run.command, run.request, result, limit ?? DEFAULT_CONTEXT_WINDOW)
+        };
+
+        setChatLog({text: `${EXTENSION_NAME}: `, messageId, loading: true, commandRun: finishedRun, commandResults});
+
+        replyToCommand(messageId, finishedRun, commandResults);
+    };
+
+    const followCommandRun = (messageId: string, run: CommandRun, response: CommandJobResponse) => {
+        const active = commandRuns.current.get(messageId);
+
+        if (!active) {
+            if (response.success && response.status === "running") {
+                cancelJob(response.job);
+            }
+
+            return;
+        }
+
+        if (response.success && response.status === "running") {
+            if (active.job !== response.job) {
+                active.job = response.job;
+
+                setChatLog({
+                    text: `${EXTENSION_NAME}: ${commandRunningText(run.command)}`,
+                    messageId,
+                    loading: true,
+                    commandRun: {...run, job: response.job}
+                });
+            }
+
+            active.timer = setTimeout(() => {
+                askAgenticSignal({type: MESSAGE_TYPES.CHECK_COMMAND, job: response.job})
+                    .then((checked) => followCommandRun(messageId, run, checked));
+            }, response.retryAfter * 1000);
+
+            return;
+        }
+
+        commandRuns.current.delete(messageId);
+
+        if (!response.success) {
+            setChatLog({
+                text: `${EXTENSION_NAME}: ${response.code === "not_found" && active.job ? commandLostText(run.command) : commandFailureText(run.command, response)}`,
+                messageId
+            });
+            setIsLLMResponding(false);
+
+            return;
+        }
+
+        answerFromResult(messageId, run, response.result);
+    };
+
+    const startCommandRun = async ({name, description, body}: CommandCall, request: string, clearInput: boolean) => {
+        const run: CommandRun = {command: name, description, request};
+        const pendingMessageId = setChatLog({
+            text: `${EXTENSION_NAME}: ${commandRunningText(name)}`,
+            sender: EXTENSION_NAME,
+            loading: true,
+            commandRun: run
+        });
+
+        commandRuns.current.set(pendingMessageId, {});
+
+        const response = await askAgenticSignal({type: MESSAGE_TYPES.START_COMMAND, command: name, body});
+
+        if (clearInput) {
+            setMessage("");
+        }
+
+        followCommandRun(pendingMessageId, run, response);
+    };
+
+    const cancelCommandRun = (messageId: string): boolean => {
+        const active = commandRuns.current.get(messageId);
+
+        if (!active) return false;
+
+        commandRuns.current.delete(messageId);
+        clearTimeout(active.timer);
+
+        if (active.job) {
+            cancelJob(active.job);
+        }
+
+        return true;
+    };
+
+    // Polling lives here, not in the service worker: Chrome stops a worker whose own timers are its only activity.
+    useEffect(() => {
+        if (!isChatLogLoaded || !isSelectedModelLoaded || !isPromptMessageLoaded) return;
+
+        for (const msg of chatLog) {
+            if (!msg.loading || !msg.commandRun) continue;
+
+            setIsLLMResponding(true);
+
+            if (msg.commandResults) {
+                replyToCommand(msg.id, msg.commandRun, msg.commandResults);
+            } else if (msg.commandRun.job) {
+                commandRuns.current.set(msg.id, {job: msg.commandRun.job});
+
+                followCommandRun(msg.id, msg.commandRun, {success: true, status: "running", job: msg.commandRun.job, retryAfter: 0});
+            } else {
+                setChatLog({text: `${EXTENSION_NAME}: ${commandInterruptedText(msg.commandRun.command)}`, messageId: msg.id});
+                setIsLLMResponding(false);
+            }
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isChatLogLoaded, isSelectedModelLoaded, isPromptMessageLoaded]);
+
+    // Shared by send and re-send: `history` is the log before the user message.
+    const respond = (history: ChatMessage[], userMessage: Pick<ChatMessage, "text" | "command">, resendIndex?: number) => {
+        const isResend = resendIndex !== undefined;
+
+        if (!isResend) {
+            setChatLog({text: userMessage.text, sender: ROLE.USER, command: userMessage.command});
+        }
+
+        if (!userMessage.command && !selectedModel) {
+            setChatLog({
+                text: `${EXTENSION_NAME}: Please select a model before ${isResend ? "resending" : "sending"} a message.`,
                 sender: EXTENSION_NAME
             });
 
             return;
         }
 
-        for (let i = chatLog.length - 1; i > messageIndex; i--) {
-            setChatLog({delete: true, messageId: chatLog[i].id});
+        if (isResend) {
+            for (let i = chatLog.length - 1; i > resendIndex; i--) {
+                cancelCommandRun(chatLog[i].id);
+                setChatLog({delete: true, messageId: chatLog[i].id});
+            }
+        }
+
+        setIsLLMResponding(true);
+
+        if (userMessage.command) {
+            startCommandRun(userMessage.command, parseCommandMessage(userMessage.text)?.text ?? "", !isResend);
+
+            return;
         }
 
         const pendingMessageId = setChatLog({
@@ -330,65 +510,58 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
             loading: true
         });
 
-        setIsLLMResponding(true);
+        streamReply([
+            ...systemMessage(promptMessage),
+            ...toConversation(history),
+            {role: ROLE.USER, content: userMessage.text}
+        ], pendingMessageId, !isResend);
+    };
 
-        const {think, temperature, contextWindow} = getModelSettings(llmSettingsMap, selectedModel);
+    const handleSend = async () => {
+        if (message.trim() === "") return;
 
-        // The port closing before a final chunk is a silent failure otherwise — the service
-        // worker being torn down mid-request (a slow model load will do it) looks identical
-        // to the model simply never answering.
-        let settled = false;
+        const commandMessage = parseCommandMessage(message);
 
-        polyfillRuntimeConnect({
-            name: MESSAGE_TYPES.FETCH_AI_RESPONSE,
-            data: {
-                type: MESSAGE_TYPES.FETCH_AI_RESPONSE,
-                messages: conversation,
-                model: selectedModel,
-                ...(think !== undefined ? {think} : {}),
-                ...(temperature !== undefined ? {temperature} : {}),
-                ...(contextWindow !== undefined ? {contextWindow} : {}),
-            },
-            onMessage: (response) => {
-                if ("error" in response) {
-                    settled = true;
+        if (commandMessage) {
+            const findListed = (list: AgenticSignalCommand[]) => list.find(({command}) => command === commandMessage.command);
+            const listed = findListed(commands);
+            // Refetched once: the list may predate the workflow being switched on.
+            const response = listed ? undefined : await fetchCommands();
+            const command = listed ?? (response?.success ? findListed(response.commands) : undefined);
 
-                    setChatLog({
-                        text: `${EXTENSION_NAME}: Sorry, there was an error: ${response.error}`,
-                        messageId: pendingMessageId,
-                    });
-                    setIsLLMResponding(false);
-                } else {
-                    setChatLog({text: response.reply, thinking: response.thinking, messageId: pendingMessageId}, response.final === true);
-
-                    if (response.final) {
-                        settled = true;
-
-                        setIsLLMResponding(false);
-
-                        if (response.promptEvalCount !== undefined || response.evalCount !== undefined) {
-                            setContextUsage({
-                                model: selectedModel,
-                                promptTokens: response.promptEvalCount ?? 0,
-                                replyTokens: response.evalCount ?? 0
-                            });
-                        } else {
-                            setContextUsage({model: "", promptTokens: 0, replyTokens: 0});
-                        }
+            if (command) {
+                respond(chatLog, {
+                    text: message,
+                    command: {
+                        name: command.command,
+                        description: command.description,
+                        body: buildCommandBody(commandMessage.text, {capturedText, capturedImage, attachedFiles})
                     }
-                }
-            },
-            onDisconnect: () => {
-                if (settled) return;
-
-                setChatLog({
-                    text: `${EXTENSION_NAME}: The connection closed before a response arrived.`
-                        + " A slow model load can outlast the service worker — try again, or lower the model's context size.",
-                    messageId: pendingMessageId,
                 });
-                setIsLLMResponding(false);
-            },
-        });
+
+                return;
+            }
+
+            // Without Agentic Signal set up, "/..." is an ordinary message.
+            if (response && !(response.success === false && response.code === "not_configured")) {
+                setChatLog({
+                    text: `${EXTENSION_NAME}: ${commandUnavailableText(commandMessage.command, response.success ? undefined : response.error)}`,
+                    sender: EXTENSION_NAME
+                });
+
+                return;
+            }
+        }
+
+        respond(chatLog, {text: formatMessage(message, {capturedText, capturedImage, attachedFiles})});
+    };
+
+    const handleResendMessage = (messageIndex: number) => {
+        const msg = chatLog[messageIndex];
+
+        if (!msg || msg.sender !== ROLE.USER) return;
+
+        respond(chatLog.slice(0, messageIndex), msg, messageIndex);
     };
 
     const handleShareMessageHistory = (messageIndex: number) => {
@@ -410,6 +583,10 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
     };
 
     const handleClose = () => {
+        for (const messageId of [...commandRuns.current.keys()]) {
+            cancelCommandRun(messageId);
+        }
+
         (async () => {
             const tabStorage = await polyfillGetTabStorage(tabId);
 
@@ -446,6 +623,10 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
     const handleDeleteMessage = (messageId: string, messageIndex: number) => {
         if (messageIndex === chatLog.length - 1) {
             polyfillRuntimeSendMessage({type: MESSAGE_TYPES.ABORT_AI_RESPONSE});
+            setIsLLMResponding(false);
+        }
+
+        if (cancelCommandRun(messageId)) {
             setIsLLMResponding(false);
         }
 
@@ -662,6 +843,8 @@ export const ChatBox = withShadowStyles(({tabId, chatBoxId, onRemove, coordsOffs
                         message={message}
                         onMessageChange={setMessage}
                         onSend={handleSend}
+                        commands={commandSuggestions}
+                        commandsNotice={commandsNoticeText}
                         disabled={isLLMResponding}
                         modelName={selectedModel}
                         usedTokens={contextUsage.model === selectedModel ? contextUsage.promptTokens + contextUsage.replyTokens : 0}

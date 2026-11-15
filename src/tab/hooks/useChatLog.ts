@@ -7,15 +7,22 @@
 
 import {useState, useEffect, useCallback} from 'react';
 import {EXTENSION_NAME} from '../../common/constants';
-import {ChatBoxIds, ChatMessage} from '../utils/types';
+import {ChatBoxIds, ChatMessage, CommandCall, CommandResults, CommandRun} from '../utils/types';
 import {generateUniqueId} from '../utils/utils';
 import {polyfillGetTabStorage} from '../privilegedAPIs/privilegedAPIs';
 import {updateChatBoxStorage} from '../utils/tabStorage';
 
 export type Sender = "user" | typeof EXTENSION_NAME;
 
-export type NewChatLogParams = { text: string; sender: Sender; loading?: boolean };
-export type ExistingChatLogParams = { text: string; messageId: string; loading?: boolean; thinking?: string };
+export type NewChatLogParams = { text: string; sender: Sender; loading?: boolean; command?: CommandCall; commandRun?: CommandRun };
+export type ExistingChatLogParams = {
+    text: string;
+    messageId: string;
+    loading?: boolean;
+    thinking?: string;
+    commandRun?: CommandRun;
+    commandResults?: CommandResults;
+};
 export type DeleteChatLogParams = { delete: true; messageId: string };
 
 export type UpdateChatLogParams = NewChatLogParams | ExistingChatLogParams;
@@ -38,6 +45,7 @@ const isDeleteChatLogParams = (
 
 export const useChatLog = ({tabId, chatBoxId}: ChatBoxIds) => {
     const [chatLog, setChatLogState] = useState<ChatMessage[]>([]);
+    const [isLoaded, setIsLoaded] = useState(false);
 
     useEffect(() => {
         (async () => {
@@ -47,6 +55,8 @@ export const useChatLog = ({tabId, chatBoxId}: ChatBoxIds) => {
             if (storedLog !== undefined) {
                 setChatLogState(storedLog);
             }
+
+            setIsLoaded(true);
         })();
     }, [tabId, chatBoxId]);
 
@@ -84,7 +94,9 @@ export const useChatLog = ({tabId, chatBoxId}: ChatBoxIds) => {
                             ...msg,
                             text: params.text,
                             loading: params.loading,
-                            thinking: "thinking" in params ? params.thinking : msg.thinking
+                            thinking: "thinking" in params ? params.thinking : msg.thinking,
+                            commandRun: "commandRun" in params ? params.commandRun : msg.commandRun,
+                            commandResults: "commandResults" in params ? params.commandResults : msg.commandResults
                         }
                         : msg
                 );
@@ -104,7 +116,7 @@ export const useChatLog = ({tabId, chatBoxId}: ChatBoxIds) => {
         setChatLogState((prevLog) => {
             const updated = [
                 ...prevLog,
-                {id: newId, sender: params.sender, text: params.text, loading: params.loading}
+                {...params, id: newId}
             ];
 
             if (persist) {
@@ -119,5 +131,5 @@ export const useChatLog = ({tabId, chatBoxId}: ChatBoxIds) => {
 
     const memoizedUpdateChatLog = useCallback(updateChatLog, [tabId, chatBoxId, updateChatLog]);
 
-    return {chatLog, setChatLog: memoizedUpdateChatLog};
+    return {chatLog, setChatLog: memoizedUpdateChatLog, isLoaded};
 };

@@ -39,6 +39,8 @@ ScribePal is an Open Source intelligent browser extension that leverages AI to e
 
 ScribePal works with [local Ollama](#prerequisites) models, ensuring that all AI processing and messaging is conducted within your local network. Your private data remains on your system and is never transmitted to external servers. This design provides you with full control over your information and guarantees that nobody outside your network has access to your data.
 
+[Agentic Signal commands](#features) are the exception you opt into: the command runs in your own Agentic Signal, but what its workflow does (a web search, for example) is up to that workflow.
+
 ## Compatibility
 
 It is compatible with all Chromium and Gecko-based browsers: Chrome, Vivaldi, Opera, Edge, Firefox, Brave etc.
@@ -51,11 +53,12 @@ It is compatible with all Chromium and Gecko-based browsers: Chrome, Vivaldi, Op
 - **Chat Interface:** A draggable chat box for sending and receiving messages.
 - **Model Management:** Select, refresh, download, and delete models.
 - **Per-Model Settings:** Fine-tune each model individually via the ⚙️ icon next to the model selector — enable **Thinking** for reasoning-capable models, override the sampling **Temperature** (0–2), and set the **Context size** (`num_ctx`), bounded by the maximum the model itself reports. Settings are saved per model and shared across every tab and chat box.
-- **Reasoning Visibility:** When a model streams its reasoning, it's shown live in a collapsible "Thought process" panel above the answer.
+- **Reasoning Visibility:** When a model streams its reasoning, it's shown live in a collapsible "Thought process" panel above the answer. That includes models whose reasoning Ollama passes through as plain text between their own markers, such as MedGemma 1.5 (`<unused94>`…`<unused95>`) and `<think>`…`</think>`.
 - **Context Usage Gauge:** A circular indicator to the right of the model selector shows how much of the context window the conversation is using, based on the exact token counts Ollama reports for the last response. It shifts from green to amber to red as the window fills.
 - **Advanced Capture Tools:** Options for capturing both text and images are available. Captured content is inserted directly into your chat using special tags (`@captured-text` for text and `@captured-image` for images).
 - **Prompt Customization:** Adjust and customize prompts to instruct the AI model on how to generate responses.
 - **File Attachments:** Upload files to the chat interface and reference them in discussions using the `@attached-files` tag.
+- **Agentic Signal Commands:** Start a message with `/` to run one of your [Agentic Signal](https://github.com/code-forge-temple/agentic-signal) workflows instead of asking the model, e.g. `/research solid-state batteries`. The `@` items you mention go along with it, and the selected model answers from the workflow's result.
 
 ## Prerequisites
 
@@ -223,8 +226,10 @@ To install the the compiled extension, for:
    - The popup allows you to set your configuration options.
 
 2. **Configure Settings:**
-   - **Ollama Server URL:**  
+   - **Ollama Server URL** (on the **Ollama** tab):  
      Enter the URL for your Ollama API server in the provided text field and click “Save”.
+   - **Agentic Signal URL and Token** (on the **Agentic Signal** tab; optional, for [`/` commands](#usage)):  
+     In Agentic Signal, open **Settings → Workflows → Outside connections**. It shows the URL to use (by default `http://127.0.0.1:8001/workflows/`); **Add** creates a connection and copies its token (`as_…`). Paste each into its field in the popup and click “Save”. To call an Agentic Signal on another computer, switch on “Accept calls from other computers on your network” there and use `http://<that-computer's-ip>:8001/workflows/`. Saving an empty field disconnects Agentic Signal.
    - **Theme Selection:**  
      Use the toggle switch to activate the dark theme as desired.
 
@@ -249,6 +254,15 @@ To install the the compiled extension, for:
    - Type your query in the chat input and press Enter or click the `Send` button.
    - The AI response is rendered below the input as markdown.
    - You can manage (delete or refresh) available Ollama models using the available controls in the model select dropdown.
+   - Typing `@` opens a menu of the items you can mention (`@captured-text`, `@captured-image`, `@attached-files`). It narrows as you type; use the arrow keys and Enter (or a click) to pick one, and Esc to close it.
+
+7. **Running Agentic Signal Commands:**
+   - Start a message with `/` to see the commands your Agentic Signal offers, each with what it does. A command is offered while a workflow with a **Workflow Input** for it is open in one of your Agentic Signal layers with **Run** switched on. When none is offered, the menu says so, along with the reason if Agentic Signal couldn't be asked (a wrong token, for example).
+   - Send `/<command> <your request>`, e.g. `/research solid-state batteries @attached-files`. The text after the command goes to the workflow with `@captured-text` written into it; `@attached-files` and `@captured-image` go as files. Only the items you mention are sent.
+   - While it runs, the chat shows “Running /research on Agentic Signal…”. Long runs are fine: the chat box checks on the run every few seconds, and picks it up again if the page reloads. Deleting that message, or closing the chat box, cancels the run.
+   - When it finishes, the selected model answers from the result. The result itself is folded above the answer under “Results of /research”. With no model selected, the result is shown as it came.
+   - **Rewind & resend** on a command message runs the command again with the same input.
+   - Without the Agentic Signal URL set, a message starting with `/` goes to the model as before.
 
 Some short video tutorials on how to use the plugin:
 1. Release 1.0.x:

@@ -21,4 +21,9 @@ export const MESSAGE_TYPES = {
     TOGGLE_CHAT_VISIBILITY: "toggleChatVisibility",
     CAPTURE_VISIBLE_TAB: "captureVisibleTab",
     ACTION_DEFAULT_LLM_UPDATED: "actionDefaultLlmUpdated",
+    ACTION_AGENTIC_SIGNAL_UPDATED: "actionAgenticSignalUpdated",
+    FETCH_COMMANDS: "fetchCommands",
+    START_COMMAND: "startCommand",
+    CHECK_COMMAND: "checkCommand",
+    CANCEL_COMMAND: "cancelCommand",
 } as const;

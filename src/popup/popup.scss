@@ -43,6 +43,47 @@ $menu-item-border-bottom: 1px;
     height: 20px;
 }
 
+.menu-group {
+    display: grid;
+    grid-template-columns: max-content 1fr max-content;
+    grid-auto-rows: $menu-item-height;
+    row-gap: $menu-item-padding * 2;
+    align-items: center;
+    padding: $menu-item-padding;
+    border-bottom: $menu-item-border-bottom solid #ccc;
+
+    .menu-item {
+        display: contents;
+    }
+}
+
+.settings-tabs {
+    display: flex;
+    padding: 0 $menu-item-padding;
+    border-bottom: $menu-item-border-bottom solid #ccc;
+
+    .settings-tab {
+        padding: 8px 12px;
+        margin-bottom: -$menu-item-border-bottom;
+        background: none;
+        border: none;
+        border-bottom: 2px solid transparent;
+        color: #666;
+        font: inherit;
+        cursor: pointer;
+
+        &:hover {
+            color: #005fa3;
+        }
+
+        &.selected {
+            border-bottom-color: #0078d7;
+            color: #0078d7;
+            font-weight: bold;
+        }
+    }
+}
+
 #extra-settings-toggle {
     height: 25px;
     margin: auto;
@@ -128,7 +169,7 @@ $extra-settings-items: 2; // TODO: if we add more settings, we need to update th
         min-width: 110px;
     }
 
-    input[type="text"], select {
+    input[type="text"], input[type="password"], select {
         flex-grow: 1;
         padding: 5px;
         border: 1px solid #ccc;
@@ -169,8 +210,23 @@ $extra-settings-items: 2; // TODO: if we add more settings, we need to update th
     }
 
     .menu-item,
-    .menu-item-short {
+    .menu-item-short,
+    .menu-group,
+    .settings-tabs {
         border-color: vars.$dark-theme-secondary-color;
+    }
+
+    .settings-tabs .settings-tab {
+        color: #aaa;
+
+        &:hover {
+            color: white;
+        }
+
+        &.selected {
+            border-bottom-color: #0078d7;
+            color: white;
+        }
     }
 
     .input-with-button {

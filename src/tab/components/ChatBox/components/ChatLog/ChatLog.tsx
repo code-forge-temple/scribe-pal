@@ -92,6 +92,11 @@ export const ChatLog = withShadowStyles(({messages, isMinimized, isResponding, o
                             {msg.loading && <SpinnerSvg className="spinner" />}
                         </span>
                         {
+                            msg.commandResults && (
+                                <ThinkingAccordion thinking={msg.commandResults.content} isStreaming={false} label={msg.commandResults.label} />
+                            )
+                        }
+                        {
                             msg.sender !== "user" && msg.thinking && (
                                 <ThinkingAccordion
                                     thinking={msg.thinking}
@@ -104,7 +109,7 @@ export const ChatLog = withShadowStyles(({messages, isMinimized, isResponding, o
                             )
                         }
                         {
-                            !msg.loading && (
+                            (!msg.loading || (msg.commandRun && !msg.commandResults)) && (
                                 <MarkdownRenderer content={msg.text.replace(`${EXTENSION_NAME}: `, "")} />
                             )
                         }

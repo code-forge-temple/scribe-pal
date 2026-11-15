@@ -14,6 +14,36 @@ export type ChatMessage = {
     text: string;
     loading?: boolean;
     thinking?: string;
+    // The text can't be turned back into a body: its `@` items were whatever was stored when it was sent.
+    command?: CommandCall;
+    commandRun?: CommandRun;
+    commandResults?: CommandResults;
+}
+
+export type CommandBody = {
+    type: "markdown-and-files";
+    value: {
+        text: string;
+        files: {name: string; base64: string; mimeType?: string}[];
+    };
+}
+
+export type CommandCall = {
+    name: string;
+    description: string;
+    body: CommandBody;
+}
+
+export type CommandRun = {
+    command: string;
+    description: string;
+    request: string;
+    job?: string;
+}
+
+export type CommandResults = {
+    label: string;
+    content: string;
 }
 
 export type ChatBoxIds = {
@@ -108,6 +138,59 @@ export const isFetchAiResponseMessageData = (data: unknown): data is MessageData
     if("temperature" in data && typeof (data as {temperature?: unknown})["temperature"] !== "number") return false;
 
     if("contextWindow" in data && typeof (data as {contextWindow?: unknown})["contextWindow"] !== "number") return false;
+
+    return true;
+}
+
+// One-shot requests, so not in MessageData: its keys are the port names.
+export type CommandMessageData = {
+    [MESSAGE_TYPES.START_COMMAND]: {
+        type: typeof MESSAGE_TYPES.START_COMMAND;
+        command: string;
+        body: CommandBody;
+    };
+    [MESSAGE_TYPES.CHECK_COMMAND]: {
+        type: typeof MESSAGE_TYPES.CHECK_COMMAND;
+        job: string;
+    };
+    [MESSAGE_TYPES.CANCEL_COMMAND]: {
+        type: typeof MESSAGE_TYPES.CANCEL_COMMAND;
+        job: string;
+    };
+}
+
+const isCommandBody = (body: unknown): body is CommandBody => {
+    if (typeof body !== "object" || body === null) return false;
+
+    if (!("type" in body) || body["type"] !== "markdown-and-files") return false;
+
+    if (!("value" in body) || typeof body["value"] !== "object" || body["value"] === null) return false;
+
+    const {text, files} = body["value"] as {text?: unknown; files?: unknown};
+
+    return typeof text === "string" && Array.isArray(files);
+}
+
+export const isStartCommandMessageData = (data: unknown): data is CommandMessageData[typeof MESSAGE_TYPES.START_COMMAND] => {
+    if(typeof data !== "object" || data === null) return false;
+
+    if(!("type" in data) || data["type"] !== MESSAGE_TYPES.START_COMMAND) return false;
+
+    if(!("command" in data) || typeof data["command"] !== "string") return false;
+
+    if(!("body" in data) || !isCommandBody(data["body"])) return false;
+
+    return true;
+}
+
+export const isJobMessageData = (
+    data: unknown
+): data is CommandMessageData[typeof MESSAGE_TYPES.CHECK_COMMAND | typeof MESSAGE_TYPES.CANCEL_COMMAND] => {
+    if(typeof data !== "object" || data === null) return false;
+
+    if(!("type" in data) || (data["type"] !== MESSAGE_TYPES.CHECK_COMMAND && data["type"] !== MESSAGE_TYPES.CANCEL_COMMAND)) return false;
+
+    if(!("job" in data) || typeof data["job"] !== "string") return false;
 
     return true;
 }

@@ -14,8 +14,9 @@ export function usePersistentState<T> (
     key: string,
     defaultValue: T,
     {tabId, chatBoxId}: ChatBoxIds
-): [T, React.Dispatch<React.SetStateAction<T>>] {
+): [T, React.Dispatch<React.SetStateAction<T>>, boolean] {
     const [state, setState] = useState<T>(defaultValue);
+    const [isLoaded, setIsLoaded] = useState(false);
 
     const loadState = useCallback(async () => {
         const currentTab = await polyfillGetTabStorage(tabId);
@@ -24,6 +25,8 @@ export function usePersistentState<T> (
         if (value !== undefined) {
             setState(value);
         }
+
+        setIsLoaded(true);
     }, [tabId, chatBoxId, key]);
 
     const persistState = useCallback(async () => {
@@ -40,5 +43,5 @@ export function usePersistentState<T> (
         persistState();
     }, [persistState]);
 
-    return [state, setState];
+    return [state, setState, isLoaded];
 }

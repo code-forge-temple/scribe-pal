@@ -5,10 +5,30 @@
 </head>
 
 <body>
-    <div class="menu-item input-with-button">
-        <label for="ollama-url">Ollama Server URL:</label>
-        <input type="text" id="ollama-url" placeholder="http://ollama-server:11434">
-        <button id="save-ollama-url">Save</button>
+    <div class="settings-tabs" role="tablist" aria-label="Servers">
+        <button type="button" class="settings-tab selected" role="tab" id="tab-ollama" aria-controls="panel-ollama" aria-selected="true">Ollama</button>
+        <button type="button" class="settings-tab" role="tab" id="tab-agentic-signal" aria-controls="panel-agentic-signal" aria-selected="false" tabindex="-1">Agentic Signal</button>
+    </div>
+    <div role="tabpanel" id="panel-ollama" aria-labelledby="tab-ollama">
+        <div class="menu-item input-with-button">
+            <label for="ollama-url">Ollama Server URL:</label>
+            <input type="text" id="ollama-url" placeholder="http://ollama-server:11434">
+            <button id="save-ollama-url">Save</button>
+        </div>
+    </div>
+    <div role="tabpanel" id="panel-agentic-signal" aria-labelledby="tab-agentic-signal" hidden>
+        <div class="menu-group">
+            <div class="menu-item input-with-button">
+                <label for="agentic-signal-url">Agentic Signal URL:</label>
+                <input type="text" id="agentic-signal-url" placeholder="http://127.0.0.1:8001/workflows/">
+                <button id="save-agentic-signal-url">Save</button>
+            </div>
+            <div class="menu-item input-with-button">
+                <label for="agentic-signal-token">Agentic Signal Token:</label>
+                <input type="password" id="agentic-signal-token" placeholder="as_…" autocomplete="off">
+                <button id="save-agentic-signal-token">Save</button>
+            </div>
+        </div>
     </div>
     <div class="menu-item theme-selection">
         <span>Dark Theme:</span>

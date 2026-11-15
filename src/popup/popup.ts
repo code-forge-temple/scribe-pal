@@ -8,6 +8,7 @@
 import {browser} from "../common/browser";
 import {MESSAGE_TYPES} from "../common/constants";
 import {LlmModel} from "../tab/services/ollamaService/types";
+import {AGENTIC_SIGNAL_TOKEN_STORAGE_KEY, AGENTIC_SIGNAL_URL_STORAGE_KEY, normalizeAgenticSignalUrl} from "../tab/utils/agenticSignal";
 import "./popup.scss";
 
 
@@ -21,7 +22,48 @@ const showNotification = (title: string, message: string) => {
     });
 };
 
+// Firefox doesn't resize the popup when its content's height changes.
+const fitPopupHeight = (afterMs: number) => {
+    document.documentElement.style.height = "auto";
+
+    setTimeout(() => {
+        document.documentElement.style.height = `${document.body.scrollHeight}px`;
+    }, afterMs);
+};
+
 document.addEventListener("DOMContentLoaded", () => {
+    const tabs = Array.from(document.querySelectorAll<HTMLButtonElement>(".settings-tab"));
+
+    const selectTab = (selected: HTMLButtonElement) => {
+        for (const tab of tabs) {
+            const isSelected = tab === selected;
+            const panel = document.getElementById(tab.getAttribute("aria-controls") ?? "");
+
+            tab.classList.toggle("selected", isSelected);
+            tab.setAttribute("aria-selected", String(isSelected));
+            tab.tabIndex = isSelected ? 0 : -1;
+
+            if (panel) {
+                panel.hidden = !isSelected;
+            }
+        }
+
+        fitPopupHeight(0);
+    };
+
+    tabs.forEach((tab, index) => {
+        tab.addEventListener("click", () => selectTab(tab));
+
+        tab.addEventListener("keydown", (e) => {
+            if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+
+            const next = tabs[(index + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length];
+
+            selectTab(next);
+            next.focus();
+        });
+    });
+
     const toggleBtn = document.getElementById("extra-settings-toggle");
     const extraSettings = document.querySelector(".extra-settings");
 
@@ -30,13 +72,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const extraSettingsCollapsed = extraSettings.classList.toggle("collapsed");
             toggleBtn.classList.toggle("rotated");
 
-            /* For Firefox */
-            document.documentElement.style.height = "auto";
-
-            setTimeout(() => {
-                document.documentElement.style.height = `${document.body.scrollHeight}px`;
-            }, 500);
-            /***************/
+            fitPopupHeight(500);
 
             if(!extraSettingsCollapsed) {
                 const response = await browser.runtime.sendMessage({type: MESSAGE_TYPES.FETCH_MODELS});
@@ -92,14 +128,24 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    browser.storage.local.get(["ollamaHost", "activeTheme"], (result: any) => {
+    browser.storage.local.get(["ollamaHost", "activeTheme", AGENTIC_SIGNAL_URL_STORAGE_KEY, AGENTIC_SIGNAL_TOKEN_STORAGE_KEY], (result: any) => {
         const ollamaUrl = document.getElementById("ollama-url") as HTMLInputElement;
+        const agenticSignalUrl = document.getElementById("agentic-signal-url") as HTMLInputElement;
+        const agenticSignalToken = document.getElementById("agentic-signal-token") as HTMLInputElement;
         const toggle = document.getElementById("dark-theme-toggle") as HTMLInputElement | null;
         const status = document.getElementById("dark-theme-status") as HTMLSpanElement | null;
         let darkThemeActive = result.activeTheme === "dark";
 
         if (result.ollamaHost) {
             ollamaUrl.value = result.ollamaHost;
+        }
+
+        if (result[AGENTIC_SIGNAL_URL_STORAGE_KEY]) {
+            agenticSignalUrl.value = result[AGENTIC_SIGNAL_URL_STORAGE_KEY];
+        }
+
+        if (result[AGENTIC_SIGNAL_TOKEN_STORAGE_KEY]) {
+            agenticSignalToken.value = result[AGENTIC_SIGNAL_TOKEN_STORAGE_KEY];
         }
 
         const renderTheme = () => {
@@ -145,6 +191,52 @@ document.getElementById("save-ollama-url")?.addEventListener("click", () => {
             type: MESSAGE_TYPES.ACTION_OLLAMA_HOST_UPDATED
         });
     });
+});
+
+const saveAgenticSignalSetting = (key: string, value: string, savedMessage: string) => {
+    const done = () => {
+        showNotification("Saved", savedMessage);
+
+        browser.runtime.sendMessage({
+            type: MESSAGE_TYPES.ACTION_AGENTIC_SIGNAL_UPDATED
+        });
+    };
+
+    if (value) {
+        browser.storage.local.set({[key]: value}, done);
+    } else {
+        browser.storage.local.remove(key, done);
+    }
+};
+
+document.getElementById("save-agentic-signal-url")?.addEventListener("click", () => {
+    const agenticSignalUrl = document.getElementById("agentic-signal-url") as HTMLInputElement;
+    const url = agenticSignalUrl.value.trim();
+    const normalizedUrl = url ? normalizeAgenticSignalUrl(url) : "";
+
+    if (normalizedUrl === null) {
+        showNotification("Invalid URL", "Please enter a valid URL (e.g., http://127.0.0.1:8001/workflows/)");
+
+        return;
+    }
+
+    agenticSignalUrl.value = normalizedUrl;
+
+    saveAgenticSignalSetting(
+        AGENTIC_SIGNAL_URL_STORAGE_KEY,
+        normalizedUrl,
+        normalizedUrl ? "Agentic Signal URL saved!" : "Agentic Signal URL removed."
+    );
+});
+
+document.getElementById("save-agentic-signal-token")?.addEventListener("click", () => {
+    const token = (document.getElementById("agentic-signal-token") as HTMLInputElement).value.trim();
+
+    saveAgenticSignalSetting(
+        AGENTIC_SIGNAL_TOKEN_STORAGE_KEY,
+        token,
+        token ? "Agentic Signal token saved!" : "Agentic Signal token removed."
+    );
 });
 
 document.getElementById("showChat")?.addEventListener("click", () => {

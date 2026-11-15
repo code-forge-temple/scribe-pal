@@ -10,8 +10,11 @@ import {EXTENSION_NAME, MESSAGE_TYPES} from "../common/constants";
 import {getTabStorage, setTabStorage} from "./utils/storageHelper";
 import {browser} from "../common/browser";
 import {polyfillCaptureVisibleTab, polyfillScriptingExecuteScript} from "./privilegedAPIs/privilegedAPIs";
-import {isFetchAiResponseMessageData, isFetchModelMessageData} from "./utils/types";
+import {isFetchAiResponseMessageData, isFetchModelMessageData, isJobMessageData, isStartCommandMessageData} from "./utils/types";
+import {AgenticSignalService} from "./services/agenticSignalService";
 
+
+const KEEP_ALIVE_MS = 20000;
 
 type MessageRequest = {
     type: string;
@@ -44,6 +47,7 @@ browser.runtime.onMessage.addListener((
 
         case MESSAGE_TYPES.ACTION_UPDATE_THEME:
         case MESSAGE_TYPES.ACTION_DEFAULT_LLM_UPDATED:
+        case MESSAGE_TYPES.ACTION_AGENTIC_SIGNAL_UPDATED:
             (async () => {
                 const [{id: tabId}] = await browser.tabs.query({currentWindow: true, active: true});
 
@@ -88,6 +92,46 @@ browser.runtime.onMessage.addListener((
 
             return true;
 
+        case MESSAGE_TYPES.FETCH_COMMANDS:
+            AgenticSignalService.getInstance()
+                .fetchCommands()
+                .then(responseCallback);
+
+            return true;
+
+        case MESSAGE_TYPES.START_COMMAND:
+            if (isStartCommandMessageData(request)) {
+                AgenticSignalService.getInstance()
+                    .startCommand(request.command, request.body)
+                    .then(responseCallback);
+            } else {
+                responseCallback({success: false, code: "bad_request", error: "No command or body provided"});
+            }
+
+            return true;
+
+        case MESSAGE_TYPES.CHECK_COMMAND:
+            if (isJobMessageData(request)) {
+                AgenticSignalService.getInstance()
+                    .checkCommand(request.job)
+                    .then(responseCallback);
+            } else {
+                responseCallback({success: false, code: "bad_request", error: "No job provided"});
+            }
+
+            return true;
+
+        case MESSAGE_TYPES.CANCEL_COMMAND:
+            if (isJobMessageData(request)) {
+                AgenticSignalService.getInstance()
+                    .cancelCommand(request.job)
+                    .then(responseCallback);
+            } else {
+                responseCallback({success: false, code: "bad_request", error: "No job provided"});
+            }
+
+            return true;
+
         case MESSAGE_TYPES.CAPTURE_VISIBLE_TAB: {
             // Use the requesting tab's own window, not a guessed "active" one.
             const windowId = sender.tab?.windowId;
@@ -123,6 +167,10 @@ browser.runtime.onConnect.addListener((port: any) => {
     if (port.name === MESSAGE_TYPES.FETCH_AI_RESPONSE) {
         port.onMessage.addListener(async (data: unknown) => {
             if (isFetchAiResponseMessageData(data)) {
+                // Chrome stops the worker 30 s after its last event or extension API call, even mid-fetch, and Ollama
+                // can take longer than that to send its first token (loading a model, reading an image).
+                const keepAlive = setInterval(() => browser.runtime.getPlatformInfo(), KEEP_ALIVE_MS);
+
                 try {
                     const stream = OllamaService.getInstance().fetchAIResponse(
                         data.messages,
@@ -138,6 +186,7 @@ browser.runtime.onConnect.addListener((port: any) => {
                         error: error instanceof Error ? error.message : String(error)
                     });
                 } finally {
+                    clearInterval(keepAlive);
                     port.disconnect();
                     console.log("Port disconnected");
                 }
